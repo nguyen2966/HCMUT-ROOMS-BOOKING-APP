@@ -1,0 +1,54 @@
+.system-config {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.tab-container {
+  display: flex;
+  border: 1px solid #a68bff;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px 15px;
+  cursor: pointer;
+  background: white;
+  border: none;
+  font-weight: 500;
+  color: #555;
+  transition: all 0.2s;
+}
+
+.tab.active {
+  background: #007bff;
+  color: white;
+  font-weight: bold;
+}
+
+.tab:not(.active):hover {
+  background: #f1f1f1;
+}
+
+.config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.config-item label {
+  font-size: 14px;
+  color: #333;
+}
+
+.config-item input,
+.config-section select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  width: 100%;
+  font-size: 14px;
+}

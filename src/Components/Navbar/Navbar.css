@@ -1,0 +1,38 @@
+.navbar{
+  background: #1768A2;
+  display: flex;
+  justify-content: space-around;
+  height: 70px;
+}
+
+.navbar-options{
+  cursor: pointer;
+  align-items: center;
+  display: flex;
+  gap:20px;
+  margin-right: 20px;
+  font-weight: 500;
+  color: white;
+}
+
+.navbar-options button{
+  cursor: pointer;
+  border-radius: 10px;
+  font-size: 16px;
+  padding: 10px 10px;
+  font-weight: 500;
+  border: none;
+}
+
+.navbar-logo{
+  display: flex;
+  flex :1;
+}
+
+.navbar-options hr {
+  border: none;
+  width: 80%;
+  height: 3px;
+  border-radius: 10px;
+  background:wheat;
+}

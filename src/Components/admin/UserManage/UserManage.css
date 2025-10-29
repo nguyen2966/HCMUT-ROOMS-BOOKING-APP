@@ -1,0 +1,121 @@
+.user-manage {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  font-family: "Segoe UI", sans-serif;
+}
+
+.user-manage h2 {
+  margin-bottom: 20px;
+  font-weight: 600;
+  font-size: 20px;
+  color: #222;
+}
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.user-table th,
+.user-table td {
+  text-align: left;
+  padding: 12px 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.user-table th {
+  font-weight: 600;
+  font-size: 14px;
+  color: #555;
+}
+
+.user-table td {
+  font-size: 14px;
+  color: #333;
+}
+
+.user-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+.user-table .email {
+  color: #2a5bd7;
+  cursor: pointer;
+}
+
+.role {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.role.sinh-viên {
+  background-color: #59c3ad;
+}
+
+.role.giảng-viên {
+  background-color: #6c8ef2;
+}
+
+.role.admin {
+  background-color: #e8b14d;
+  color: #000;
+}
+
+button.edit,
+button.delete {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 16px;
+  margin: 0 5px;
+  transition: transform 0.15s;
+}
+
+button.edit:hover {
+  transform: scale(1.1);
+  color: #2a7ef0;
+}
+
+button.delete:hover {
+  transform: scale(1.1);
+  color: red;
+}
+
+.user-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-info{
+  display: flex;
+  align-items: center;
+}
+
+.user-manage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.search-bar {
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  width: 220px;
+  transition: 0.2s;
+}
+
+.search-bar:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 3px rgba(0, 123, 255, 0.3);
+}
