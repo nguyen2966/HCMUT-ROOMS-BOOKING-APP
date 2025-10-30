@@ -50,6 +50,9 @@ function AppContent() {
               <Home/>
             </ProtectedRoute>
           }
+
+         
+          
         />
         <Route 
           path="/admin" 
