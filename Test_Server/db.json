@@ -1,0 +1,218 @@
+{
+  "roles": [
+    {
+      "id": 1,
+      "role_name": "Admin"
+    },
+    {
+      "id": 2,
+      "role_name": "Student"
+    },
+    {
+      "id": 3,
+      "role_name": "Lecturer"
+    }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "manager_id": null,
+      "email": "admin@hcmut.edu.vn",
+      "full_name": "Admin User",
+      "status": "Active",
+      "created_date": "2025-01-01T09:00:00",
+      "last_login": "2025-10-01T08:00:00",
+      "phone_num": "0900000000",
+      "role_id": 1,
+      "password": "admin123"
+    },
+    {
+      "id": 2,
+      "manager_id": 1,
+      "email": "lecturer1@hcmut.edu.vn",
+      "full_name": "Nguyễn Văn A",
+      "status": "Active",
+      "created_date": "2025-01-10T09:00:00",
+      "last_login": "2025-10-20T08:00:00",
+      "phone_num": "0901111111",
+      "role_id": 2,
+      "password": "lecturer123"
+    },
+    {
+      "id": 3,
+      "manager_id": 2,
+      "email": "student1@hcmut.edu.vn",
+      "full_name": "Trần Thị B",
+      "status": "Active",
+      "created_date": "2025-02-01T09:00:00",
+      "last_login": "2025-10-25T10:30:00",
+      "phone_num": "0902222222",
+      "role_id": 2,
+      "password": "student123"
+    },
+    {
+      "id": 4,
+      "manager_id": 2,
+      "email": "student2@hcmut.edu.vn",
+      "full_name": "Lê Minh C",
+      "status": "Active",
+      "created_date": "2025-02-15T09:00:00",
+      "last_login": "2025-10-24T09:45:00",
+      "phone_num": "0903333333",
+      "role_id": 3,
+      "password": "student123"
+    },
+    {
+      "id": 5,
+      "manager_id": 2,
+      "email": "student3@hcmut.edu.vn",
+      "full_name": "Phạm Hoàng D",
+      "status": "Inactive",
+      "created_date": "2025-03-01T09:00:00",
+      "last_login": null,
+      "phone_num": "0904444444",
+      "role_id": 3,
+      "password": "student123"
+    }
+  ],
+  "rooms": [
+    {
+      "id": 1,
+      "status": "Available",
+      "capacity": 50,
+      "type": "Lecture Hall",
+      "name": "A101",
+      "building": "A",
+      "description": "Main lecture hall",
+      "manager_id": 2
+    },
+    {
+      "id": 2,
+      "status": "In Use",
+      "capacity": 30,
+      "type": "Lab",
+      "name": "B202",
+      "building": "B",
+      "description": "Computer Lab for practical sessions",
+      "manager_id": 2
+    },
+    {
+      "id": 3,
+      "status": "Maintenance",
+      "capacity": 100,
+      "type": "Auditorium",
+      "name": "C301",
+      "building": "C",
+      "description": "Big meeting room for events",
+      "manager_id": 1
+    }
+  ],
+  "devices": [
+    {
+      "id": 1,
+      "room_id": 1,
+      "name": "Projector A101",
+      "description": "Ceiling-mounted projector",
+      "energy_consumption": 0.5,
+      "type": "Projector"
+    },
+    {
+      "id": 2,
+      "room_id": 2,
+      "name": "Computer B202-01",
+      "description": "Desktop PC for lab use",
+      "energy_consumption": 0.2,
+      "type": "Computer"
+    },
+    {
+      "id": 3,
+      "room_id": 3,
+      "name": "Speaker C301",
+      "description": "Sound system for auditorium",
+      "energy_consumption": 0.3,
+      "type": "Audio"
+    }
+  ],
+  "bookings": [
+    {
+      "id": 1,
+      "created_at": "2025-10-10T09:00:00",
+      "booking_user": 3,
+      "start_time": "2025-10-15T08:00:00",
+      "end_time": "2025-10-15T10:00:00",
+      "cancel_reason": null,
+      "room_id": 1,
+      "status": "Completed",
+      "check_log": "Checked in at 07:55",
+      "checkin_time": "2025-10-15T07:55:00",
+      "checkout_time": "2025-10-15T10:05:00"
+    },
+    {
+      "id": 2,
+      "created_at": "2025-10-12T09:00:00",
+      "booking_user": 4,
+      "start_time": "2025-10-18T09:00:00",
+      "end_time": "2025-10-18T11:00:00",
+      "cancel_reason": "Student canceled",
+      "room_id": 2,
+      "status": "Canceled",
+      "check_log": null,
+      "checkin_time": null,
+      "checkout_time": null
+    }
+  ],
+  "feedback": [
+    {
+      "id": 1,
+      "rating": 5,
+      "comment": "Excellent room and clean environment",
+      "created_at": "2025-10-15T12:00:00",
+      "booking_id": 1
+    },
+    {
+      "id": 2,
+      "rating": 3,
+      "comment": "Computer lab was noisy",
+      "created_at": "2025-10-18T12:00:00",
+      "booking_id": 2
+    }
+  ],
+  "penalties": [
+    {
+      "id": 1,
+      "user_id": 4,
+      "edited_user_id": 2,
+      "created_at": "2025-10-20T08:00:00",
+      "point": 1,
+      "type": "Late check-in",
+      "note": "Student arrived 15 minutes late",
+      "booking_id": 1
+    }
+  ],
+  "system_config": [
+    {
+      "id": 1,
+      "config_name": "max_booking_duration",
+      "config_value": "3 hours",
+      "manage_config": "time_limit",
+      "config_id": null,
+      "admin_id": 1
+    },
+    {
+      "id": 2,
+      "config_name": "auto_cancel_no_checkin",
+      "config_value": "15 minutes",
+      "manage_config": "auto_cancel",
+      "config_id": null,
+      "admin_id": 1
+    },
+    {
+      "id": 3,
+      "config_name": "max_penalty_points",
+      "config_value": "5",
+      "manage_config": "penalty",
+      "config_id": null,
+      "admin_id": 1
+    }
+  ]
+}

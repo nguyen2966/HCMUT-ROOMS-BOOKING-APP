@@ -6,6 +6,7 @@ import TimeUsageStatistic from "../../Components/admin/TimeUsageStatistic/TimeUs
 import CancellationStatistic from "../../Components/admin/CancellationStatistic/CancellationStatistic";
 import RoomOccupancyRates from "../../Components/admin/RoomOccupancyRates/RoomOccupancyRates";
 import ViolationStatistics from "../../Components/admin/ViolationStatistics/ViolationStatistics";
+import SpaceManage from "../../Components/admin/SpaceManage/SpaceMange"
 
 export const adminMenu = [
   {
@@ -22,6 +23,11 @@ export const adminMenu = [
     name: "User Manage",
     description: "Manage user.",
     component: UserManage,
+  },
+  {
+    name: "Space Manage",
+    description: "Manage rooms",
+    component: SpaceManage
   },
   {
     name: "Time usage statistic",
