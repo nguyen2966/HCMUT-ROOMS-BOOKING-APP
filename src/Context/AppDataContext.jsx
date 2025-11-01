@@ -9,7 +9,7 @@ export function AppDataProvider({ children }) {
   const [rooms, setRooms] = useState([]);
   const [devices, setDevices] = useState([]);
   const [users, setUsers] = useState([]);
-  const [userData, setUserData] = useState(null); // 👈 specific user's full info
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
     if (!user) return;

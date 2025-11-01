@@ -180,7 +180,7 @@
   margin-bottom: 8px;
 }
 
-.signup-field input {
+.signup-field input , .signup-field select {
   padding: 12px 16px;
   border: 1px solid #e0e0e0;
   border-radius: 6px;

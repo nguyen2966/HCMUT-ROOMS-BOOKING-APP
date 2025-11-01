@@ -2,9 +2,11 @@ import './Navbar.css'
 import hcmut_logo from "../../Assets/logo_header.png"
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
+import {useAuth} from '../../Context/AuthContext'
 
 const Navbar = () =>{
   const [menu,setMenu] = useState("home");
+  const {logout} = useAuth();
   return (
    
     <div className='navbar'>
@@ -12,13 +14,13 @@ const Navbar = () =>{
         <img src={hcmut_logo} alt="logo"/>
       </div>
 
-      <div className='navbar-options'>
-         <Link style={{ textDecoration: "none", color: "inherit" }} to={"/home"}><p onClick={()=>{setMenu("home")}}>Home{menu==="home"?<hr/>:<></>}</p></Link>
-         <Link style={{ textDecoration: "none", color: "inherit" }} to={"/rooms"}><p onClick={()=>{setMenu("rooms")}}>Rooms{menu==="rooms"?<hr/>:<></>}</p></Link>
-         <Link style={{ textDecoration: "none", color: "inherit" }} to={"/equiqment"}><p onClick={()=>{setMenu("equiqment")}}>Equiqment{menu==="equiqment"?<hr/>:<></>}</p></Link>
-         <Link style={{ textDecoration: "none", color: "inherit" }} to={"/"}><button>Log out</button></Link>
+      <ul className='navbar-options'>
+         <Link style={{ textDecoration: "none", color: "inherit" }} to={"/home"}><li onClick={()=>{setMenu("home")}}>Home{menu==="home"?<hr/>:<></>}</li></Link>
+         <Link style={{ textDecoration: "none", color: "inherit" }} to={"/rooms"}><li onClick={()=>{setMenu("rooms")}}>Rooms{menu==="rooms"?<hr/>:<></>}</li></Link>
+         <Link style={{ textDecoration: "none", color: "inherit" }} to={"/equiqment"}><li onClick={()=>{setMenu("equiqment")}}>Equiqment{menu==="equiqment"?<hr/>:<></>}</li></Link>
+         <Link style={{ textDecoration: "none", color: "inherit" }} to={"/"}><button onClick={()=>logout()}>Log out</button></Link>
           
-      </div>
+      </ul>
     </div>
   )
 }

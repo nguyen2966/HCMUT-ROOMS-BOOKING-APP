@@ -7,6 +7,7 @@ import Rooms from './Pages/Rooms';
 import AdminPanel from './Pages/admin/admin';
 import { AuthProvider, useAuth } from './Context/AuthContext';
 import Home from './Pages/Home';
+import Equiqment from './Pages/Equiqment';
 
 // Layout wrapper to hide Navbar/Footer on login
 function Layout({ children }) {
@@ -22,10 +23,18 @@ function Layout({ children }) {
 }
 
 // ProtectedRoute for authenticated or role-based access
-function ProtectedRoute({ children, requiredRole }) {
+function ProtectedRoute({ children, allowedRoles }) {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
-  if (requiredRole && user.role !== requiredRole) return <Navigate to="/rooms" replace />;
+  console.log("ProtectedRoute user:", user);
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/home" replace />;
+  }
+
   return children;
 }
 
@@ -43,6 +52,14 @@ function AppContent() {
             </ProtectedRoute>
           } 
         />
+          <Route 
+          path="/equiqment" 
+          element={
+            <ProtectedRoute>
+              <Equiqment />
+            </ProtectedRoute>
+          } 
+        />
         <Route
           path = "/home"
           element={
@@ -50,18 +67,16 @@ function AppContent() {
               <Home/>
             </ProtectedRoute>
           }
-
-         
-          
         />
-        <Route 
-          path="/admin" 
+        <Route
+          path="/admin"
           element={
-            <ProtectedRoute requiredRole="Admin">
+            <ProtectedRoute allowedRoles={["Admin"]}>
               <AdminPanel />
             </ProtectedRoute>
-          } 
+          }
         />
+
       </Routes>
     </Layout>
   );

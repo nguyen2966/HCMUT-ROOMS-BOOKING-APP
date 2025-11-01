@@ -6,6 +6,7 @@
 }
 
 .navbar-options{
+  list-style: none;
   cursor: pointer;
   align-items: center;
   display: flex;
