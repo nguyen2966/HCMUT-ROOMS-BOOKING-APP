@@ -5,6 +5,7 @@ import Footer from './Components/Footer/Footer';
 import LoginSignup from './Pages/LoginSignup';
 import Rooms from './Pages/Rooms';
 import AdminPanel from './Pages/admin/admin';
+import TechnicalTeamPanel from './Pages/technicalteam/technicalteam';
 import { AuthProvider, useAuth } from './Context/AuthContext';
 import Home from './Pages/Home';
 import Equiqment from './Pages/Equiqment';
@@ -73,6 +74,14 @@ function AppContent() {
           element={
             <ProtectedRoute allowedRoles={["Admin"]}>
               <AdminPanel />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/technicalteam"
+          element={
+            <ProtectedRoute allowedRoles={["Technical Team"]}>
+              <TechnicalTeamPanel />
             </ProtectedRoute>
           }
         />

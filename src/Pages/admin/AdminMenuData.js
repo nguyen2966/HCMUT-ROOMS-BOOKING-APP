@@ -6,6 +6,9 @@ import TimeUsageStatistic from "../../Components/admin/TimeUsageStatistic/TimeUs
 import CancellationStatistic from "../../Components/admin/CancellationStatistic/CancellationStatistic";
 import RoomOccupancyRates from "../../Components/admin/RoomOccupancyRates/RoomOccupancyRates";
 import ViolationStatistics from "../../Components/admin/ViolationStatistics/ViolationStatistics";
+import ElectricConsumption from "../../Components/admin/ElectricConsumption/ElectricConsumption";
+import IoTPerformance from "../../Components/admin/IoTPerformance/IoTPerformance";
+import OperationalCost from "../../Components/admin/OperationalCost/OperationalCost";
 import SpaceManage from "../../Components/admin/SpaceManage/SpaceMange"
 
 export const adminMenu = [
@@ -48,5 +51,20 @@ export const adminMenu = [
     name: "Violation statistics",
     description: "Violation statistics",
     component: ViolationStatistics,
+  },
+  {
+    name: "Electric consumption",
+    description: "Electric consumption by month",
+    component: ElectricConsumption,
+  },
+  {
+    name: "IoT devices performance",
+    description: "IoT devices performance comparison",
+    component: IoTPerformance,
+  },
+  {
+    name: "Operational cost forecast",
+    description: "Operational cost forecast by month",
+    component: OperationalCost,
   },
 ];

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../Context/AuthContext";
 import hcmut_img from "../Assets/login_hcmut.png";
 import "./CSS/LoginSignup.css";
+import API_BASE_URL from "../config/api";
 
 const LoginSignup = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -47,7 +48,7 @@ const LoginSignup = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:3069/auth/register", {
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
