@@ -14,7 +14,7 @@ import {
 import axios from "axios";
 import API_BASE_URL from "../../../config/api";
 import { AuthContext } from "../../../Context/AuthContext";
-import "./TimeUsageStatistic.css";
+import "./ElectricConsumption.css";
 
 // Register Chart.js components
 ChartJS.register(
@@ -28,81 +28,78 @@ ChartJS.register(
   Filler
 );
 
-export default function TimeUsageStatistic() {
+export default function ElectricConsumption() {
   const { accessToken, user } = useContext(AuthContext);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [useSampleData, setUseSampleData] = useState(true); // Toggle giữa data mẫu và data thật
+  const [useSampleData, setUseSampleData] = useState(true);
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [],
   });
 
-  // Months for X-axis (1-12)
-  const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  // Months for X-axis
+  const monthLabels = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   // Generate years for dropdown (current year and past 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
-  // Hàm tạo dữ liệu mẫu cho bookings theo tháng
-  const generateSampleBookings = () => {
-    const bookings = [];
+  // Hàm tạo dữ liệu mẫu cho electric consumption
+  const generateSampleConsumption = () => {
+    const consumptionData = [];
     
-    // Tạo bookings cho từng tháng trong năm
+    // Tạo dữ liệu cho 12 tháng với pattern giống mockup
+    // Tháng 1-5: tăng dần từ 30-200
+    // Tháng 6-8: giảm xuống 80-100
+    // Tháng 9-12: tăng lại lên 150-170
     for (let month = 0; month < 12; month++) {
-      // Số lượng bookings mỗi tháng (50-250 lượt)
-      const bookingsPerMonth = Math.floor(Math.random() * 200) + 50;
-      
-      for (let i = 0; i < bookingsPerMonth; i++) {
-        // Ngày ngẫu nhiên trong tháng
-        const day = Math.floor(Math.random() * 28) + 1;
-        const hour = Math.floor(Math.random() * 24);
-        
-        const bookingDate = new Date(selectedYear, month, day, hour, 0, 0);
-        
-        bookings.push({
-          id: `sample-${month}-${day}-${i}`,
-          start_time: bookingDate.toISOString(),
-          end_time: new Date(bookingDate.getTime() + 2 * 60 * 60 * 1000).toISOString(),
-          status: 'APPROVED',
-        });
+      let consumption;
+      if (month < 5) {
+        // Tháng 1-5: tăng dần
+        consumption = 30 + (month * 35) + Math.random() * 20;
+      } else if (month >= 5 && month < 8) {
+        // Tháng 6-8: giảm
+        consumption = 100 - ((month - 5) * 10) + Math.random() * 15;
+      } else {
+        // Tháng 9-12: tăng lại
+        consumption = 80 + ((month - 8) * 20) + Math.random() * 20;
       }
+      
+      consumptionData.push(Math.round(consumption));
     }
     
-    return bookings;
+    return consumptionData;
   };
 
-  const fetchUsageData = async () => {
+  const fetchConsumptionData = async () => {
     setLoading(true);
     setError(null);
 
     try {
       // ===== DÙNG DỮ LIỆU MẪU ĐỂ KIỂM TRA =====
       if (useSampleData) {
-        console.log('Đang dùng dữ liệu mẫu để kiểm tra đồ thị...');
-        const sampleBookings = generateSampleBookings();
-        console.log(`Đã tạo ${sampleBookings.length} bookings mẫu`);
-        processBookingsData(sampleBookings, selectedYear);
+        console.log('Đang dùng dữ liệu mẫu để kiểm tra đồ thị electric consumption...');
+        const consumptionData = generateSampleConsumption();
+        console.log(`Đã tạo dữ liệu điện năng cho 12 tháng`);
+        processConsumptionData(consumptionData);
         setLoading(false);
         return;
       }
       // ========================================
 
-      // Code thực để kết nối API (sẽ dùng khi backend đã chạy)
+      // Code thực để kết nối API
       if (!accessToken || !user) {
         setError("User not authenticated. Please login.");
         setLoading(false);
         return;
       }
 
-      // Fetch bookings data from backend
       const periodStart = new Date(selectedYear, 0, 1).toISOString();
       const periodEnd = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
 
-      // Try to get bookings data
       const response = await axios.get(
-        `${API_BASE_URL}/booking`,
+        `${API_BASE_URL}/report/electric-consumption`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -115,37 +112,35 @@ export default function TimeUsageStatistic() {
       );
 
       if (response.data && response.data.data) {
-        // Process bookings to calculate monthly usage
-        processBookingsData(response.data.data, selectedYear);
+        processConsumptionData(response.data.data.monthlyConsumption);
       } else {
-        setError("No booking data available for this year");
+        setError("No electric consumption data available for this year");
         setChartData({
           labels: monthLabels,
           datasets: [{
-            label: "Usage Count",
+            label: "Electric consumption (kWh)",
             data: Array(12).fill(0),
-            borderColor: "rgb(75, 132, 192)",
-            backgroundColor: "rgba(75, 132, 192, 0.5)",
-            tension: 0.3,
-            fill: true,
+            borderColor: "rgb(59, 130, 246)",
+            backgroundColor: "rgba(59, 130, 246, 0.1)",
+            tension: 0.4,
+            fill: false,
           }],
         });
       }
     } catch (err) {
-      console.error("Error fetching usage data:", err);
+      console.error("Error fetching consumption data:", err);
       const errorMsg = err.response?.data?.message || err.message || "Failed to fetch data from server";
       setError(errorMsg);
       
-      // Show empty chart on error
       setChartData({
         labels: monthLabels,
         datasets: [{
-          label: "Usage Count",
+          label: "Electric consumption (kWh)",
           data: Array(12).fill(0),
-          borderColor: "rgb(75, 132, 192)",
-          backgroundColor: "rgba(75, 132, 192, 0.5)",
-          tension: 0.3,
-          fill: true,
+          borderColor: "rgb(59, 130, 246)",
+          backgroundColor: "rgba(59, 130, 246, 0.1)",
+          tension: 0.4,
+          fill: false,
         }],
       });
     } finally {
@@ -153,43 +148,23 @@ export default function TimeUsageStatistic() {
     }
   };
 
-  const processBookingsData = (bookings, year) => {
-    // Initialize array with 0 for all 12 months
-    const monthlyTurnOfUse = Array(12).fill(0);
-
-    // Process each booking - count number of bookings per month
-    bookings.forEach((booking) => {
-      try {
-        const startTime = new Date(booking.start_time);
-        
-        // Check if booking is in the selected year
-        if (startTime.getFullYear() !== year) {
-          return;
-        }
-
-        // Get the month (0-11)
-        const month = startTime.getMonth();
-        monthlyTurnOfUse[month] += 1;
-      } catch (err) {
-        console.warn("Error processing booking:", booking, err);
-      }
-    });
-
+  const processConsumptionData = (consumptionData) => {
     setChartData({
       labels: monthLabels,
       datasets: [
         {
-          label: "Usage Count",
-          data: monthlyTurnOfUse,
-          borderColor: "rgb(75, 132, 192)",
-          backgroundColor: "rgba(75, 132, 192, 0.5)",
-          tension: 0.3,
-          fill: true,
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          pointBackgroundColor: "rgb(75, 132, 192)",
+          label: "Electric consumption (kWh)",
+          data: consumptionData,
+          borderColor: "rgb(59, 130, 246)",
+          backgroundColor: "rgba(59, 130, 246, 0.1)",
+          tension: 0.4,
+          fill: false,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          pointBackgroundColor: "rgb(59, 130, 246)",
           pointBorderColor: "#fff",
           pointBorderWidth: 2,
+          borderWidth: 2,
         },
       ],
     });
@@ -197,7 +172,7 @@ export default function TimeUsageStatistic() {
 
   // Initial fetch and refetch on dependency changes
   React.useEffect(() => {
-    fetchUsageData();
+    fetchConsumptionData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear, useSampleData, accessToken, user]);
 
@@ -218,14 +193,14 @@ export default function TimeUsageStatistic() {
         padding: 12,
         titleColor: "#fff",
         bodyColor: "#fff",
-        borderColor: "rgba(75, 132, 192, 0.5)",
+        borderColor: "rgba(59, 130, 246, 0.5)",
         borderWidth: 1,
         callbacks: {
           title: function (context) {
-            return `Month: ${context[0].label}`;
+            return context[0].label;
           },
           label: function (context) {
-            return `Usage count: ${context.parsed.y}`;
+            return `Electric consumption: ${context.parsed.y} kWh`;
           },
         },
       },
@@ -239,19 +214,13 @@ export default function TimeUsageStatistic() {
           drawBorder: false,
         },
         ticks: {
-          stepSize: 50,
+          stepSize: 100,
           callback: function (value) {
             return value;
           },
         },
         title: {
-          display: true,
-          text: 'Usage count',
-          font: {
-            size: 12,
-            weight: 'bold',
-          },
-          color: '#666',
+          display: false,
         },
       },
       x: {
@@ -264,13 +233,7 @@ export default function TimeUsageStatistic() {
           },
         },
         title: {
-          display: true,
-          text: 'Month',
-          font: {
-            size: 12,
-            weight: 'bold',
-          },
-          color: '#666',
+          display: false,
         },
       },
     },
@@ -282,9 +245,9 @@ export default function TimeUsageStatistic() {
   };
 
   return (
-    <div className="time-usage-statistic">
+    <div className="electric-consumption">
       <div className="content-header">
-        <h2>USAGE STATISTIC</h2>
+        <h2>ELECTRIC CONSUMPTION BY MONTH</h2>
         <div className="header-controls">
           <button 
             className={`data-toggle-btn ${useSampleData ? 'active' : ''}`}
@@ -317,7 +280,7 @@ export default function TimeUsageStatistic() {
         ) : error ? (
           <div className="error-state">
             <p>Error: {error}</p>
-            <button onClick={fetchUsageData}>Retry</button>
+            <button onClick={fetchConsumptionData}>Retry</button>
           </div>
         ) : (
           <Line data={chartData} options={chartOptions} />

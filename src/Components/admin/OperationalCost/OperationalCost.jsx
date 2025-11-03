@@ -14,7 +14,7 @@ import {
 import axios from "axios";
 import API_BASE_URL from "../../../config/api";
 import { AuthContext } from "../../../Context/AuthContext";
-import "./TimeUsageStatistic.css";
+import "./OperationalCost.css";
 
 // Register Chart.js components
 ChartJS.register(
@@ -28,81 +28,70 @@ ChartJS.register(
   Filler
 );
 
-export default function TimeUsageStatistic() {
+export default function OperationalCost() {
   const { accessToken, user } = useContext(AuthContext);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [useSampleData, setUseSampleData] = useState(true); // Toggle giữa data mẫu và data thật
+  const [useSampleData, setUseSampleData] = useState(true);
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [],
   });
 
-  // Months for X-axis (1-12)
-  const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  // Months for X-axis
+  const monthLabels = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   // Generate years for dropdown (current year and past 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
-  // Hàm tạo dữ liệu mẫu cho bookings theo tháng
-  const generateSampleBookings = () => {
-    const bookings = [];
+  // Hàm tạo dữ liệu mẫu cho operational cost forecast
+  const generateSampleCost = () => {
+    const costData = [];
     
-    // Tạo bookings cho từng tháng trong năm
+    // Pattern giống mockup:
+    // Jan: 55, Feb: 35, Mar: 90, Apr: 70, May: 55
+    // Jun: 85, Jul: 90, Aug: 80, Sep: 35, Oct: 30
+    // Nov: 75, Dec: 20
+    const basePattern = [55, 35, 90, 70, 55, 85, 90, 80, 35, 30, 75, 20];
+    
     for (let month = 0; month < 12; month++) {
-      // Số lượng bookings mỗi tháng (50-250 lượt)
-      const bookingsPerMonth = Math.floor(Math.random() * 200) + 50;
-      
-      for (let i = 0; i < bookingsPerMonth; i++) {
-        // Ngày ngẫu nhiên trong tháng
-        const day = Math.floor(Math.random() * 28) + 1;
-        const hour = Math.floor(Math.random() * 24);
-        
-        const bookingDate = new Date(selectedYear, month, day, hour, 0, 0);
-        
-        bookings.push({
-          id: `sample-${month}-${day}-${i}`,
-          start_time: bookingDate.toISOString(),
-          end_time: new Date(bookingDate.getTime() + 2 * 60 * 60 * 1000).toISOString(),
-          status: 'APPROVED',
-        });
-      }
+      // Thêm một chút random để không giống hệt nhau
+      const variation = Math.random() * 10 - 5; // -5 đến +5
+      costData.push(Math.max(0, basePattern[month] + variation));
     }
     
-    return bookings;
+    return costData;
   };
 
-  const fetchUsageData = async () => {
+  const fetchCostData = async () => {
     setLoading(true);
     setError(null);
 
     try {
       // ===== DÙNG DỮ LIỆU MẪU ĐỂ KIỂM TRA =====
       if (useSampleData) {
-        console.log('Đang dùng dữ liệu mẫu để kiểm tra đồ thị...');
-        const sampleBookings = generateSampleBookings();
-        console.log(`Đã tạo ${sampleBookings.length} bookings mẫu`);
-        processBookingsData(sampleBookings, selectedYear);
+        console.log('Đang dùng dữ liệu mẫu để kiểm tra đồ thị operational cost...');
+        const costData = generateSampleCost();
+        console.log(`Đã tạo dữ liệu chi phí cho 12 tháng`);
+        processCostData(costData);
         setLoading(false);
         return;
       }
       // ========================================
 
-      // Code thực để kết nối API (sẽ dùng khi backend đã chạy)
+      // Code thực để kết nối API
       if (!accessToken || !user) {
         setError("User not authenticated. Please login.");
         setLoading(false);
         return;
       }
 
-      // Fetch bookings data from backend
       const periodStart = new Date(selectedYear, 0, 1).toISOString();
       const periodEnd = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
 
-      // Try to get bookings data
       const response = await axios.get(
-        `${API_BASE_URL}/booking`,
+        `${API_BASE_URL}/report/operational-cost`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -115,37 +104,35 @@ export default function TimeUsageStatistic() {
       );
 
       if (response.data && response.data.data) {
-        // Process bookings to calculate monthly usage
-        processBookingsData(response.data.data, selectedYear);
+        processCostData(response.data.data.monthlyCost);
       } else {
-        setError("No booking data available for this year");
+        setError("No operational cost data available for this year");
         setChartData({
           labels: monthLabels,
           datasets: [{
-            label: "Usage Count",
+            label: "Operational cost",
             data: Array(12).fill(0),
-            borderColor: "rgb(75, 132, 192)",
-            backgroundColor: "rgba(75, 132, 192, 0.5)",
-            tension: 0.3,
-            fill: true,
+            borderColor: "rgb(139, 92, 246)",
+            backgroundColor: "rgba(139, 92, 246, 0.1)",
+            tension: 0.4,
+            fill: false,
           }],
         });
       }
     } catch (err) {
-      console.error("Error fetching usage data:", err);
+      console.error("Error fetching operational cost data:", err);
       const errorMsg = err.response?.data?.message || err.message || "Failed to fetch data from server";
       setError(errorMsg);
       
-      // Show empty chart on error
       setChartData({
         labels: monthLabels,
         datasets: [{
-          label: "Usage Count",
+          label: "Operational cost",
           data: Array(12).fill(0),
-          borderColor: "rgb(75, 132, 192)",
-          backgroundColor: "rgba(75, 132, 192, 0.5)",
-          tension: 0.3,
-          fill: true,
+          borderColor: "rgb(139, 92, 246)",
+          backgroundColor: "rgba(139, 92, 246, 0.1)",
+          tension: 0.4,
+          fill: false,
         }],
       });
     } finally {
@@ -153,43 +140,23 @@ export default function TimeUsageStatistic() {
     }
   };
 
-  const processBookingsData = (bookings, year) => {
-    // Initialize array with 0 for all 12 months
-    const monthlyTurnOfUse = Array(12).fill(0);
-
-    // Process each booking - count number of bookings per month
-    bookings.forEach((booking) => {
-      try {
-        const startTime = new Date(booking.start_time);
-        
-        // Check if booking is in the selected year
-        if (startTime.getFullYear() !== year) {
-          return;
-        }
-
-        // Get the month (0-11)
-        const month = startTime.getMonth();
-        monthlyTurnOfUse[month] += 1;
-      } catch (err) {
-        console.warn("Error processing booking:", booking, err);
-      }
-    });
-
+  const processCostData = (costData) => {
     setChartData({
       labels: monthLabels,
       datasets: [
         {
-          label: "Usage Count",
-          data: monthlyTurnOfUse,
-          borderColor: "rgb(75, 132, 192)",
-          backgroundColor: "rgba(75, 132, 192, 0.5)",
-          tension: 0.3,
-          fill: true,
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          pointBackgroundColor: "rgb(75, 132, 192)",
+          label: "Operational cost",
+          data: costData,
+          borderColor: "rgb(139, 92, 246)",
+          backgroundColor: "rgba(139, 92, 246, 0.1)",
+          tension: 0.4,
+          fill: false,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: "rgb(139, 92, 246)",
           pointBorderColor: "#fff",
           pointBorderWidth: 2,
+          borderWidth: 2,
         },
       ],
     });
@@ -197,7 +164,7 @@ export default function TimeUsageStatistic() {
 
   // Initial fetch and refetch on dependency changes
   React.useEffect(() => {
-    fetchUsageData();
+    fetchCostData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear, useSampleData, accessToken, user]);
 
@@ -218,14 +185,14 @@ export default function TimeUsageStatistic() {
         padding: 12,
         titleColor: "#fff",
         bodyColor: "#fff",
-        borderColor: "rgba(75, 132, 192, 0.5)",
+        borderColor: "rgba(139, 92, 246, 0.5)",
         borderWidth: 1,
         callbacks: {
           title: function (context) {
-            return `Month: ${context[0].label}`;
+            return context[0].label;
           },
           label: function (context) {
-            return `Usage count: ${context.parsed.y}`;
+            return `Cost: ${context.parsed.y}`;
           },
         },
       },
@@ -233,25 +200,19 @@ export default function TimeUsageStatistic() {
     scales: {
       y: {
         beginAtZero: true,
-        max: 300,
+        max: 100,
         grid: {
           color: "rgba(0, 0, 0, 0.05)",
           drawBorder: false,
         },
         ticks: {
-          stepSize: 50,
+          stepSize: 20,
           callback: function (value) {
             return value;
           },
         },
         title: {
-          display: true,
-          text: 'Usage count',
-          font: {
-            size: 12,
-            weight: 'bold',
-          },
-          color: '#666',
+          display: false,
         },
       },
       x: {
@@ -264,13 +225,7 @@ export default function TimeUsageStatistic() {
           },
         },
         title: {
-          display: true,
-          text: 'Month',
-          font: {
-            size: 12,
-            weight: 'bold',
-          },
-          color: '#666',
+          display: false,
         },
       },
     },
@@ -282,9 +237,9 @@ export default function TimeUsageStatistic() {
   };
 
   return (
-    <div className="time-usage-statistic">
+    <div className="operational-cost">
       <div className="content-header">
-        <h2>USAGE STATISTIC</h2>
+        <h2>OPERATIONAL COST FORECAST</h2>
         <div className="header-controls">
           <button 
             className={`data-toggle-btn ${useSampleData ? 'active' : ''}`}
@@ -317,7 +272,7 @@ export default function TimeUsageStatistic() {
         ) : error ? (
           <div className="error-state">
             <p>Error: {error}</p>
-            <button onClick={fetchUsageData}>Retry</button>
+            <button onClick={fetchCostData}>Retry</button>
           </div>
         ) : (
           <Line data={chartData} options={chartOptions} />

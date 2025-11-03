@@ -12,7 +12,7 @@ import {
 import axios from "axios";
 import API_BASE_URL from "../../../config/api";
 import { AuthContext } from "../../../Context/AuthContext";
-import "./RoomOccupancyRates.css";
+import "./IoTPerformance.css";
 
 // Register Chart.js components
 ChartJS.register(
@@ -24,7 +24,7 @@ ChartJS.register(
   Legend
 );
 
-export default function RoomOccupancyRates() {
+export default function IoTPerformance() {
   const { accessToken, user } = useContext(AuthContext);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
@@ -38,35 +38,47 @@ export default function RoomOccupancyRates() {
   // Generate years for dropdown (current year and past 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
-  // Hàm tạo dữ liệu mẫu cho room occupancy
-  const generateSampleOccupancy = () => {
-    const buildings = ['BK.B1', 'BK.B2', 'BK.B3', 'BK.B6'];
-    const roomTypes = [
-      { name: 'Laboratory', color: 'rgb(251, 146, 60)', bgColor: 'rgba(251, 146, 60, 0.8)' },
-      { name: 'Classroom', color: 'rgb(52, 211, 153)', bgColor: 'rgba(52, 211, 153, 0.8)' },
-      { name: 'Library', color: 'rgb(168, 85, 247)', bgColor: 'rgba(168, 85, 247, 0.8)' }
-    ];
+  // Hàm tạo dữ liệu mẫu cho IoT devices performance
+  const generateSamplePerformance = () => {
+    const devices = ['Air-conditioner', 'Lights', 'Ceiling fan', 'Projector'];
+    
+    const performanceData = devices.map(device => {
+      let thisQuarter, lastQuarter;
+      
+      if (device === 'Air-conditioner') {
+        thisQuarter = Math.floor(Math.random() * 15) + 15; // 15-30
+        lastQuarter = Math.floor(Math.random() * 15) + 15; // 15-30
+      } else if (device === 'Lights') {
+        thisQuarter = Math.floor(Math.random() * 20) + 60; // 60-80
+        lastQuarter = Math.floor(Math.random() * 15) + 15; // 15-30
+      } else if (device === 'Ceiling fan') {
+        thisQuarter = Math.floor(Math.random() * 15) + 40; // 40-55
+        lastQuarter = Math.floor(Math.random() * 10) + 10; // 10-20
+      } else { // Projector
+        thisQuarter = Math.floor(Math.random() * 10) + 15; // 15-25
+        lastQuarter = Math.floor(Math.random() * 5) + 5; // 5-10
+      }
+      
+      return {
+        device,
+        thisQuarter,
+        lastQuarter,
+      };
+    });
 
-    const occupancyData = buildings.map(building => ({
-      building,
-      Laboratory: Math.floor(Math.random() * 30) + 30, // 30-60%
-      Classroom: Math.floor(Math.random() * 20) + 15, // 15-35%
-      Library: Math.floor(Math.random() * 15) + 10, // 10-25%
-    }));
-
-    return { buildings, roomTypes, occupancyData };
+    return { devices, performanceData };
   };
 
-  const fetchOccupancyData = async () => {
+  const fetchPerformanceData = async () => {
     setLoading(true);
     setError(null);
 
     try {
       // ===== DÙNG DỮ LIỆU MẪU ĐỂ KIỂM TRA =====
       if (useSampleData) {
-        console.log('Đang dùng dữ liệu mẫu để kiểm tra đồ thị occupancy...');
-        const { buildings, roomTypes, occupancyData } = generateSampleOccupancy();
-        processOccupancyData(buildings, roomTypes, occupancyData);
+        console.log('Đang dùng dữ liệu mẫu để kiểm tra đồ thị IoT performance...');
+        const { devices, performanceData } = generateSamplePerformance();
+        processPerformanceData(devices, performanceData);
         setLoading(false);
         return;
       }
@@ -83,7 +95,7 @@ export default function RoomOccupancyRates() {
       const periodEnd = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
 
       const response = await axios.get(
-        `${API_BASE_URL}/report/occupancy`,
+        `${API_BASE_URL}/report/iot-performance`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -96,17 +108,17 @@ export default function RoomOccupancyRates() {
       );
 
       if (response.data && response.data.data) {
-        const { buildings, roomTypes, occupancyData } = response.data.data;
-        processOccupancyData(buildings, roomTypes, occupancyData);
+        const { devices, performanceData } = response.data.data;
+        processPerformanceData(devices, performanceData);
       } else {
-        setError("No occupancy data available for this year");
+        setError("No IoT performance data available for this year");
         setChartData({
           labels: [],
           datasets: [],
         });
       }
     } catch (err) {
-      console.error("Error fetching occupancy data:", err);
+      console.error("Error fetching IoT performance data:", err);
       const errorMsg = err.response?.data?.message || err.message || "Failed to fetch data from server";
       setError(errorMsg);
       
@@ -119,28 +131,38 @@ export default function RoomOccupancyRates() {
     }
   };
 
-  const processOccupancyData = (buildings, roomTypes, occupancyData) => {
-    const datasets = roomTypes.map(type => ({
-      label: type.name,
-      data: occupancyData.map(item => item[type.name] || 0),
-      backgroundColor: type.bgColor,
-      borderColor: type.color,
-      borderWidth: 1,
-    }));
+  const processPerformanceData = (devices, performanceData) => {
+    const datasets = [
+      {
+        label: 'This quarter',
+        data: performanceData.map(item => item.thisQuarter || 0),
+        backgroundColor: 'rgba(124, 58, 237, 0.8)',
+        borderColor: 'rgb(124, 58, 237)',
+        borderWidth: 1,
+      },
+      {
+        label: 'Last quarter',
+        data: performanceData.map(item => item.lastQuarter || 0),
+        backgroundColor: 'rgba(196, 181, 253, 0.8)',
+        borderColor: 'rgb(196, 181, 253)',
+        borderWidth: 1,
+      }
+    ];
 
     setChartData({
-      labels: buildings,
+      labels: devices,
       datasets: datasets,
     });
   };
 
   // Initial fetch and refetch on dependency changes
   React.useEffect(() => {
-    fetchOccupancyData();
+    fetchPerformanceData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear, useSampleData, accessToken, user]);
 
   const chartOptions = {
+    indexAxis: 'y', // Horizontal bar chart
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -154,7 +176,8 @@ export default function RoomOccupancyRates() {
           font: {
             size: 12,
           },
-          usePointStyle: false,
+          usePointStyle: true,
+          pointStyle: 'circle',
         },
       },
       title: {
@@ -167,29 +190,17 @@ export default function RoomOccupancyRates() {
         padding: 12,
         titleColor: "#fff",
         bodyColor: "#fff",
-        borderColor: "rgba(34, 117, 207, 0.5)",
+        borderColor: "rgba(124, 58, 237, 0.5)",
         borderWidth: 1,
         callbacks: {
           label: function (context) {
-            return `${context.dataset.label}: ${context.parsed.y}%`;
+            return `${context.dataset.label}: ${context.parsed.x}`;
           },
         },
       },
     },
     scales: {
       x: {
-        stacked: true,
-        grid: {
-          display: false,
-        },
-        ticks: {
-          font: {
-            size: 11,
-          },
-        },
-      },
-      y: {
-        stacked: true,
         beginAtZero: true,
         max: 100,
         grid: {
@@ -202,8 +213,15 @@ export default function RoomOccupancyRates() {
             return value;
           },
         },
-        title: {
+      },
+      y: {
+        grid: {
           display: false,
+        },
+        ticks: {
+          font: {
+            size: 11,
+          },
         },
       },
     },
@@ -214,9 +232,9 @@ export default function RoomOccupancyRates() {
   };
 
   return (
-    <div className="room-occupancy-rates">
+    <div className="iot-performance">
       <div className="content-header">
-        <h2>OCCUPANCY RATE OF ROOM IN BUILDING</h2>
+        <h2>IOT DEVICES PERFORMANCE</h2>
         <div className="header-controls">
           <button 
             className={`data-toggle-btn ${useSampleData ? 'active' : ''}`}
@@ -249,7 +267,7 @@ export default function RoomOccupancyRates() {
         ) : error ? (
           <div className="error-state">
             <p>Error: {error}</p>
-            <button onClick={fetchOccupancyData}>Retry</button>
+            <button onClick={fetchPerformanceData}>Retry</button>
           </div>
         ) : (
           <Bar data={chartData} options={chartOptions} />

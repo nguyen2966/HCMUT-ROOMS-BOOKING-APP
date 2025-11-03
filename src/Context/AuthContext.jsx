@@ -1,6 +1,7 @@
 // src/Context/AuthContext.jsx
 import React, { useContext, createContext, useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
+import API_BASE_URL from "../config/api";
 
 export const AuthContext = createContext();
 
@@ -19,7 +20,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const currentAccessToken = localStorage.getItem("accessToken");
       if (currentAccessToken) {
-        await axios.delete("http://localhost:3069/auth/delete-token", {
+        await axios.delete(`${API_BASE_URL}/auth/delete-token`, {
           headers: { Authorization: `Bearer ${currentAccessToken}` },
           withCredentials: true, // Important: Send cookies with request
         });
@@ -54,7 +55,7 @@ export const AuthProvider = ({ children }) => {
 
       // The refresh token is sent automatically via HTTP-only cookie
       const res = await axios.post(
-        "http://localhost:3069/auth/refresh-token",
+        `${API_BASE_URL}/auth/refresh-token`,
         {},
         {
           withCredentials: true, // Important: Send cookies with request
@@ -124,7 +125,7 @@ export const AuthProvider = ({ children }) => {
   // Function to log in
   const login = async (email, password) => {
     try {
-      const res = await axios.post("http://localhost:3069/auth/login", {
+      const res = await axios.post(`${API_BASE_URL}/auth/login`, {
         email,
         password,
       }, {
