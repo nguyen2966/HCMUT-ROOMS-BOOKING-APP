@@ -1,0 +1,103 @@
+.space-mgmt{padding:16px}
+.sm-header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.sm-add{background:#eee;border-radius:8px;padding:8px 12px;border:1px solid #ddd}
+.sm-search{flex:1;padding:8px;border-radius:6px;border:1px solid #e0e0e0}
+
+.sm-table-wrap{background:#fff;border-radius:8px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,0.04)}
+.sm-table{width:100%;border-collapse:collapse}
+.sm-table thead th{padding:16px 12px;text-align:left;border-bottom:1px solid #eee;color:#666;font-weight:600}
+.m-table tbody td{padding:14px 12px;border-bottom:1px solid #f4f4f4}
+.sm-table tbody tr td{padding:14px 12px;border-bottom:1px solid #f4f4f4}
+.room-name{font-weight:700}
+.badge{padding:6px 10px;border-radius:8px;color:#fff;font-size:13px}
+.badge.available{background:#2fb75f}
+.badge.inused{background:#e6a96e}
+.badge.maintaining{background:#f08a2a}
+.actions{display:flex;gap:8px}
+.icon{background:transparent;border:0;cursor:pointer}
+
+.sm-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;z-index:1200}
+.sm-modal{width:880px;background:#fff;border-radius:6px;display:flex;gap:12px;box-shadow:0 18px 60px rgba(0,0,0,0.35);overflow:hidden}
+.sm-left{flex:1;padding:20px;display:flex;flex-direction:column;gap:12px}
+.sm-right{width:380px;border-left:1px solid #e6e6e6;padding:14px}
+.sm-image-placeholder{
+	height:340px;
+	background:linear-gradient(#fafafa,#f1f1f1);
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	border:1px dashed #ddd;
+	border-radius:6px
+}
+.sm-desc{padding-top:6px}
+.sm-desc-row{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.sm-desc-left{flex:1;text-align:left}
+.sm-desc-right{display:flex;align-items:center}
+.sm-tags{display:flex;gap:10px;justify-content:flex-end}
+.tag{border:1px solid #dedede;padding:8px 14px;border-radius:18px;background:#fff;font-size:14px}
+.sm-actions{
+	display:flex;
+    gap: 16px;
+    margin-top:22px;
+    
+    justify-content:center;
+}
+.btn{flex: 1;
+    text-align: center;
+}
+.btn.save{background:#19a34a;color:#fff;box-shadow:0 8px 0 rgba(0,0,0,0.04);padding-left:64px;padding-right:64px;font-size:16px}
+.btn.cancel{background:#e24d4d;color:#fff}
+
+.sm-desc-left .room-title{font-weight:700;font-size:18px;margin-bottom:8px;color:#111}
+.sm-desc-left .room-meta{font-size:15px;color:#222;margin-bottom:6px}
+.sm-desc-right .tag{font-size:13px;padding:7px 12px}
+
+.sm-right-header{display:flex;justify-content:space-between;align-items:center}
+.team-label{font-weight:700;margin-right:8px}
+.team-input-wrap{display:flex;align-items:center}
+.team-input{width:80px;padding:8px;border-radius:6px;border:1px solid #e0e0e0}
+.time-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.time-field{display:flex;flex-direction:column}
+.time-field label{font-size:13px;color:#666;margin-bottom:6px}
+.time-input{padding:8px;border-radius:6px;border:1px solid #e0e0e0}
+.clock-icon{margin-left:auto;padding:8px;border-radius:50%;border:1px solid #e0e0e0;background:#fff;cursor:pointer}
+.calendar-box{height:300px;background:repeating-linear-gradient(45deg,#fff 0 10%, #fafafa 10% 20%);margin-top:10px;border-radius:6px;overflow:auto}
+.qr-small{display:flex;justify-content:center;margin-top:12px}
+.qr-small img{width:120px;height:120px}
+.btn.create{margin-top:12px;width:100%;background:#f0f0f0}
+
+/* tighten spacing and fonts to match mockup */
+.sm-modal{width:880px;background:#fff;border-radius:6px;display:flex;gap:12px;box-shadow:0 22px 70px rgba(0,0,0,0.18);overflow:hidden}
+.sm-left{flex:1;padding:18px}
+.sm-right{width:380px;border-left:1px solid #eaeaea;padding:16px}
+.sm-right-header{font-weight:600}
+.sm-desc div{color:#222}
+.sm-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.sm-info-text {
+    white-space: nowrap;
+}
+.sm-tags{
+    display:flex;
+    gap: 10px;
+    justify-content: flex-end;
+    align-self: flex-start;
+}
+
+@media (max-width:960px){
+	.sm-modal{width:96%}
+}
+
+.btn.save{background:#2fb75f;color:#fff;padding:12px 22px;border-radius:8px}
+.btn.cancel{background:#e24d4d;color:#fff;padding:12px 22px;border-radius:8px}
+
+@media (max-width: 960px){
+	.sm-modal{width:96%;flex-direction:column}
+	.sm-right{width:100%;border-left:0;border-top:1px solid #e6e6e6}
+	.sm-image-placeholder{height:220px}
+}
