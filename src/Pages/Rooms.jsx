@@ -1,128 +1,173 @@
-import React, { useState } from 'react'
-import 'react-datepicker/dist/react-datepicker.css'
-import './CSS/Rooms.css'
-import LearningSpaces from './LearningSpaces'
+import React, { useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import "./CSS/Rooms.css";
+import "./admin/Spacemanage.css";
+import RoomQR from "../Components/RoomQR/RoomQR";
 
-const mockRooms = [
-  { id: 'H2.201', status: 'available', img: null },
-  { id: 'H3.105', status: 'inuse', img: null },
-  { id: 'H3.406', status: 'checkedout', img: null },
-  { id: 'H1.210', status: 'checkedout', img: null },
-  { id: 'H1.506', status: 'checkedout', img: null },
-  { id: 'H1.406', status: 'checkedout', img: null }
-]
+import { useAppData } from "../Context/AppDataContext";
+// import { useAuth } from "../Context/AuthContext";
 
-function RoomCard({ room, onClick }){
+function SpaceCard({ room, onOpen }) {
+  // backend: "Available", "available", "In used", "Maintaining"
+  const normalized = room.status?.toLowerCase();
+  const statusClass =
+    normalized === "available"
+      ? "available"
+      : normalized === "in used"
+      ? "inuse"
+      : "checkedout";
+
   return (
-    <div className={"room-card " + room.status} onClick={() => onClick(room)}>
-      <div className="room-thumb" />
+    <div className={`ls-room-card ${statusClass}`} onClick={() => onOpen(room)}>
+      <div className="room-thumb"></div>
+
       <div className="room-info">
-        <div className="room-id">{room.id}</div>
-        <div className="room-status">
-          {room.status === 'available' && <span className="green">Available to Check-In</span>}
-          {room.status === 'inuse' && <span className="teal">In Use</span>}
-          {room.status === 'checkedout' && <span className="muted">User has Checked-out</span>}
+        <div className="room-info-top">
+          <div className="info-left">
+            <div className="room-id">{room.name}</div>
+            <div className="room-meta">
+              Campus: Dĩ An <br />
+              Building: {room.building}
+            </div>
+          </div>
+
+          <div className="room-status">
+            <span className={`status-pill ${statusClass}-status`}>
+              {room.status}
+            </span>
+          </div>
+        </div>
+
+        {/* Device tags */}
+        <div className="room-tags">
+          {room.device?.slice(0, 3).map((d) => (
+            <button key={d.ID} className="tag">
+              {d.type}
+            </button>
+          ))}
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-const Rooms = () =>{
-  const [rooms] = useState(mockRooms)
-  const [selected, setSelected] = useState(null)
-  const [showQR, setShowQR] = useState(false)
-  const [view, setView] = useState('yourRooms') // 'yourRooms' | 'learning'
+export default function Rooms() {
+  // const {accessToken } = useAuth();
+  const { rooms } = useAppData(); // 
+  console.log(rooms);
 
-  function handleCardClick(room){
-    // only open details for available or inuse/checkedout as UI shows
-    setSelected({ ...room, checkIn: '8:00 6/9/2025', checkOut: '10:00 6/9/2025' })
-    setShowQR(false)
-  }
+  const [selected, setSelected] = useState(null);
+  const [open, setOpen] = useState(false);
 
-  function closePanel(){
-    setSelected(null)
-    setShowQR(false)
-  }
+  const openModal = (room) => {
+    setSelected(room);
+    setOpen(true);
+  };
+
+  const closeModal = () => {
+    setSelected(null);
+    setOpen(false);
+  };
 
   return (
-    <div className='rooms-page'>
-      <aside className="rooms-sidebar">
-        <div className="user-box">
-          <h4>User Info</h4>
-          <p>View or Change your information.</p>
-        </div>
-        <nav className="rooms-nav">
-          <div className={`nav-item ${view === 'yourRooms' ? 'active' : ''}`} onClick={() => setView('yourRooms')}>Your Rooms<p>View your booked room.</p></div>
-          <div className={`nav-item ${view === 'learning' ? 'active' : ''}`} onClick={() => setView('learning')}>Learning Spaces<p>Discover your next workspace</p></div>
-        </nav>
-      </aside>
+    <div className="learning-spaces">
+      <h2 className="page-title">Learning Spaces</h2>
 
-      <main className="rooms-main">
-        {view === 'yourRooms' && (
-          <>
-            <h2 className="page-title">Your Rooms</h2>
-            <div className="rooms-grid">
-              {rooms.map(r => (
-                <RoomCard key={r.id} room={r} onClick={handleCardClick} />
-              ))}
+      {/* ✅ Ensure no crash before data loads */}
+      <div className="rooms-grid">
+        {rooms && rooms.length > 0 ? (
+          rooms.map((room) => (
+            <SpaceCard key={room.ID} room={room} onOpen={openModal} />
+          ))
+        ) : (
+          <p>Loading rooms...</p>
+        )}
+      </div>
+
+      {open && selected && (
+        <div className="sm-modal-overlay" onClick={closeModal}>
+          <div className="sm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="sm-left">
+              <div className="sm-image-placeholder">Preview image</div>
+
+              <div className="sm-desc">
+                <div className="sm-desc-row">
+                  <div className="sm-desc-left">
+                    <div className="room-title">{selected.name}</div>
+                    <div className="room-meta">
+                      <strong>Campus:</strong> Dĩ An
+                    </div>
+                    <div className="room-meta">
+                      <strong>Building:</strong> {selected.building}
+                    </div>
+                  </div>
+
+                  <div className="sm-desc-right">
+                    <div className="sm-tags">
+                      {selected.device?.map((d) => (
+                        <button key={d.ID} className="tag">
+                          {d.type}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="sm-actions">
+                <button
+                  className="btn save"
+                  onClick={() => {
+                    alert("Reserved " + selected.name);
+                    closeModal();
+                  }}
+                >
+                  Reserve
+                </button>
+              </div>
             </div>
-          </>
-        )}
 
-        {view === 'learning' && (
-          <LearningSpaces />
-        )}
-      </main>
-
-      {selected && (
-        <div className="room-panel-overlay" onClick={closePanel}>
-          <div className="room-panel room-panel-vertical" onClick={e => e.stopPropagation()}>
-            {!showQR && (
-              <div className="rp-vertical">
-                <h3>{selected.id}</h3>
-                <p className="status-text">{selected.status === 'available' ? <span className="green">Available to Check-In</span> : (selected.status === 'inuse' ? <span className="teal">In Use</span> : <span className="muted">User has Checked-out</span>)}</p>
-                <div className="panel-thumb" />
-
-                <div className="dates">
-                  <div><strong>Check-in Date:</strong> {selected.checkIn}</div>
-                  <div><strong>Check-out Date:</strong> {selected.checkOut}</div>
-                </div>
-
-                <div className="panel-actions-vertical">
-                  <button className="btn btn-green">Check-In</button>
-                  <button className="btn btn-red">Check-Out</button>
-                  <button className="btn btn-dark" onClick={() => setShowQR(true)}>Show QR</button>
+            <div className="sm-right">
+              <div className="sm-right-header">
+                <div className="team-label">Team size:</div>
+                <div className="team-input-wrap">
+                  <input
+                    type="number"
+                    min="1"
+                    defaultValue={1}
+                    className="team-input"
+                  />
                 </div>
               </div>
-            )}
 
-            {showQR && (
-              <div className="rp-vertical">
-                <h3>{selected.id}</h3>
-                <p className="status-text">{selected.status === 'available' ? <span className="green">Available to Check-In</span> : (selected.status === 'inuse' ? <span className="teal">In Use</span> : <span className="muted">User has Checked-out</span>)}</p>
-                <div className="panel-thumb" />
-                <div className="dates">
-                  <div><strong>Check-in Date:</strong> {selected.checkIn}</div>
-                  <div><strong>Check-out Date:</strong> {selected.checkOut}</div>
+              <div className="sm-calendar">
+                <div className="time-row">
+                  <div className="time-field">
+                    <label>From</label>
+                    <input type="time" className="time-input" />
+                  </div>
+
+                <div className="time-field">
+                    <label>To</label>
+                    <input type="time" className="time-input" />
+                  </div>
+
+                  <button className="clock-icon" aria-label="time-picker">
+                    🕒
+                  </button>
                 </div>
 
-                <div className="qr-area">
-                  <div className="qr-center">
-                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(selected.id + '|' + selected.checkIn)}`} alt="qr" />
-                  </div>
-                  <div style={{marginTop:12}}>
-                    <button className="btn btn-dark" onClick={() => setShowQR(false)}>Go Back</button>
-                  </div>
+                <div className="calendar-box">
+                  <DatePicker inline />
                 </div>
+
+                <RoomQR roomId={selected?.ID} roomName={selected?.name} />
               </div>
-            )}
-
+            </div>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
-
-export default Rooms

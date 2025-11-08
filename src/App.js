@@ -7,6 +7,7 @@ import Rooms from './Pages/Rooms';
 import AdminPanel from './Pages/admin/admin';
 import TechnicalTeamPanel from './Pages/technicalteam/technicalteam';
 import { AuthProvider, useAuth } from './Context/AuthContext';
+import { AppDataProvider } from './Context/AppDataContext';
 import Home from './Pages/Home';
 import Equiqment from './Pages/Equiqment';
 
@@ -94,9 +95,11 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
+      <AppDataProvider>
+         <BrowserRouter>
+          <AppContent />
+         </BrowserRouter>
+      </AppDataProvider>
     </AuthProvider>
   );
 }

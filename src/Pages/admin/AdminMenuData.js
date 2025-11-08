@@ -9,7 +9,7 @@ import ViolationStatistics from "../../Components/admin/ViolationStatistics/Viol
 import ElectricConsumption from "../../Components/admin/ElectricConsumption/ElectricConsumption";
 import IoTPerformance from "../../Components/admin/IoTPerformance/IoTPerformance";
 import OperationalCost from "../../Components/admin/OperationalCost/OperationalCost";
-import SpaceManage from "../../Components/admin/SpaceManage/SpaceMange"
+import SpaceManage from "../../Components/admin/SpaceManage/SpaceManage"
 
 export const adminMenu = [
   {

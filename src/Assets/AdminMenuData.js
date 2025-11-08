@@ -7,7 +7,7 @@ import CancellationStatistic from "../Components/admin/CancellationStatistic/Can
 import RoomOccupancyRates from "../Components/admin/RoomOccupancyRates/RoomOccupancyRates";
 import ViolationStatistics from "../Components/admin/ViolationStatistics/ViolationStatistics";
 import ElectricConsumption from "../Components/admin/ElectricConsumption/ElectricConsumption";
-import SpaceManage from "../Components/admin/SpaceManage/SpaceMange"
+import SpaceManage from "../Components/admin/SpaceManage/SpaceManage"
 import UserInfo from "../Components/UserInfo/UserInfo";
 import BookedRooms from "../Components/BookedRooms/BookedRooms";
 

@@ -1,37 +1,133 @@
 import React, { useState } from "react";
 import "./UserManage.css";
 import user_icon from "../../../Assets/user_icon.png";
-
-const Mock_user = [
-  { fullname: "Nithya Menon", penalty: 1, email: "user849@gmail.com", role: "Giảng viên", img: "../../Assets/user_icon.png" },
-  { fullname: "Meera Gonzalez", penalty: 0, email: "user849@gmail.com", role: "Admin", img: "../../Assets/user_icon.png" },
-  { fullname: "Karthik Subramanian", penalty: 0, email: "user849@gmail.com", role: "Giảng viên", img: "../../Assets/user_icon.png" },
-  { fullname: "Mithra B", penalty: 2, email: "user849@gmail.com", role: "Sinh viên", img: "../../Assets/user_icon.png" },
-  { fullname: "Jagatheesh Narayanan", penalty: 0, email: "user849@gmail.com", role: "Sinh viên", img: "../../Assets/user_icon.png" },
-  { fullname: "Steve Rogers", penalty: 1, email: "user849@gmail.com", role: "Sinh viên", img: "../../Assets/user_icon.png" },
-];
-
-// later will fetch from backend
+import { useAppData } from "../../../Context/AppDataContext";
+import { useAuth } from "../../../Context/AuthContext";
 
 export default function UserManage() {
-  const [users, setUsers] = useState(Mock_user);
+  const { users: contextUsers } = useAppData();
+  const { user } = useAuth(); // contains accessToken and ID
+  const [users, setUsers] = useState(contextUsers || []);
   const [searchTerm, setSearchTerm] = useState("");
+  console.log(contextUsers);
+  // When context updates (after fetch), sync with local state
+  React.useEffect(() => {
+    if (contextUsers?.length) {
+      setUsers(contextUsers);
+    }
+  }, [contextUsers]);
 
-  const handleEdit = (index) => {
-    alert(`Edit user: ${users[index].fullname}`);
-  };
+  const token = user?.accessToken;
+  const adminId = user?.ID;
 
-  const handleDelete = (index) => {
-    if (window.confirm(`Are you sure to delete ${users[index].fullname}?`)) {
-      setUsers(users.filter((_, i) => i !== index));
+  // DELETE user
+  const handleDelete = async (u) => {
+    if (!window.confirm(`Are you sure to delete ${u.full_name}?`)) return;
+
+    try {
+      const res = await fetch(`http://localhost:3069/admin/users`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: u.ID,
+          admin_id: adminId,
+        }),
+      });
+
+      const data = await res.json();
+      console.log("Delete response:", data);
+
+      if (res.ok) {
+        setUsers((prev) => prev.filter((usr) => usr.ID !== u.ID));
+        alert("User deleted successfully!");
+      } else {
+        alert("Failed to delete user: " + data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting user");
     }
   };
 
-  //  Filter users by name using regex
-  const filteredUsers = users.filter((u) => {
-    const regex = new RegExp(searchTerm, "i");
-    return regex.test(u.fullname);
-  });
+  // PATCH user status
+  const handleToggleStatus = async (u) => {
+    const newStatus = u.status === "active" ? "Locked" : "active";
+
+    try {
+      const res = await fetch(`http://localhost:3069/admin/users/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: u.ID,
+          status: newStatus,
+          role_id: u.role?.ID || 1,
+          admin_id: adminId,
+        }),
+      });
+
+      const data = await res.json();
+      console.log("Status update:", data);
+
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((usr) =>
+            usr.ID === u.ID ? { ...usr, status: newStatus } : usr
+          )
+        );
+        alert(`User status updated to ${newStatus}`);
+      } else {
+        alert("Failed to update status: " + data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error updating status");
+    }
+  };
+
+  // PATCH reset penalty
+  const handleResetPenalty = async (u) => {
+    try {
+      const res = await fetch(`http://localhost:3069/admin/users/reset-penalty`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: u.ID,
+          admin_id: adminId,
+        }),
+      });
+
+      const data = await res.json();
+      console.log("Reset penalty:", data);
+
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((usr) =>
+            usr.ID === u.ID ? { ...usr, penalty_penalty_user_idTouser: [] } : usr
+          )
+        );
+        alert(`Penalty reset for ${u.full_name}`);
+      } else {
+        alert("Failed to reset penalty: " + data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error resetting penalty");
+    }
+  };
+
+  // Search filter
+  const filteredUsers = users.filter((u) =>
+    new RegExp(searchTerm, "i").test(u.full_name)
+  );
 
   return (
     <div className="user-manage">
@@ -53,26 +149,41 @@ export default function UserManage() {
             <th>Penalty</th>
             <th>Email</th>
             <th>Role</th>
+            <th>Status</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {filteredUsers.map((u, index) => (
-            <tr key={index}>
+          {filteredUsers.map((u) => (
+            <tr key={u.ID}>
               <td className="user-info">
-                <img src={user_icon} alt={u.fullname} className="user-img" />
-                <span className="user-name">{u.fullname}</span>
+                <img src={user_icon} alt={u.full_name} className="user-img" />
+                <span className="user-name">{u.full_name}</span>
               </td>
-              <td>{u.penalty}</td>
+              <td>{u.penalty_penalty_user_idTouser?.length || 0}</td>
               <td className="email">{u.email}</td>
               <td>
-                <span className={`role ${u.role.toLowerCase().replace(" ", "-")}`}>
-                  {u.role}
+                <span className={`role ${u.role?.role_name?.toLowerCase().replace(" ", "-")}`}>
+                  {u.role?.role_name}
                 </span>
               </td>
               <td>
-                <button className="edit" onClick={() => handleEdit(index)}>✏️</button>
-                <button className="delete" onClick={() => handleDelete(index)}>🗑️</button>
+                <span
+                  className={`status ${u.status === "active" ? "active" : "locked"}`}
+                >
+                  {u.status}
+                </span>
+              </td>
+              <td>
+                <button className="edit" onClick={() => handleToggleStatus(u)}>
+                  🔄
+                </button>
+                <button className="reset" onClick={() => handleResetPenalty(u)}>
+                  ♻️
+                </button>
+                <button className="delete" onClick={() => handleDelete(u)}>
+                  🗑️
+                </button>
               </td>
             </tr>
           ))}
@@ -81,3 +192,4 @@ export default function UserManage() {
     </div>
   );
 }
+

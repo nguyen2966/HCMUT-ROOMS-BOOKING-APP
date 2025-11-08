@@ -133,7 +133,7 @@ export const AuthProvider = ({ children }) => {
       });
 
       const { ID, accessToken, role } = res.data.metaData;
-      console.log("Raw login response:", res.data.metaData);
+     // console.log("Raw login response:", res.data.metaData);
 
       // Store in state and localStorage
       // Note: refreshToken is stored in HTTP-only cookie by backend
