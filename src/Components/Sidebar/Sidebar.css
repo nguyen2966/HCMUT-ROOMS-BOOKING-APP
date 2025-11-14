@@ -36,6 +36,10 @@
   transition: background-color 0.2s ease;
 }
 
+.sidebar-item:nth-child(odd) {
+  background-color: #efefef;
+}
+
 .sidebar-item:hover {
   background-color: #f2f2f2;
 }

@@ -18,6 +18,17 @@
   border-collapse: collapse;
 }
 
+/* Table header sticky */
+.user-table thead th {
+  position: sticky;
+  top: 70px; /* height of .user-manage-header */
+  background: #fff;
+  z-index: 5;
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid #ccc;
+}
+
 .user-table th,
 .user-table td {
   text-align: left;
@@ -53,16 +64,21 @@
   color: #fff;
 }
 
-.role.sinh-viên {
+.role.student {
   background-color: #59c3ad;
 }
 
-.role.giảng-viên {
+.role.lecturer {
   background-color: #6c8ef2;
 }
 
 .role.admin {
   background-color: #e8b14d;
+  color: #000;
+}
+
+.role.technical-team{
+  background-color: rgb(46, 247, 46);
   color: #000;
 }
 
@@ -99,10 +115,15 @@ button.delete:hover {
 }
 
 .user-manage-header {
+  position: sticky;
+  top: 0;
+  background: #f1f1f1;
+  z-index: 10;
+  padding: 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  border-bottom: 1px solid #ccc;
 }
 
 .search-bar {
@@ -118,4 +139,38 @@ button.delete:hover {
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 3px rgba(0, 123, 255, 0.3);
+}
+
+.status {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: white;
+}
+
+/* Active = green */
+.status.active {
+  background-color: #22c55e; /* Tailwind green-500 */
+}
+
+/* Locked = gray/red */
+.status.locked {
+  background-color: #ef4444; /* Tailwind red-500 */
+}
+
+/* ----- Table Row Striping ----- */
+.user-table tbody tr:nth-child(odd) {
+  background-color: #f8f8f8; /* light gray */
+}
+
+.user-table tbody tr:nth-child(even) {
+  background-color: #ffffff;
+}
+
+/* Optional: Hover highlight */
+.user-table tbody tr:hover {
+  background-color: #e8e8e8;
+  transition: background-color 0.2s ease;
 }

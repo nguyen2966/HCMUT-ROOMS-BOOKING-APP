@@ -29,7 +29,7 @@ export function AppDataProvider({ children }) {
 
         const roomsData = await roomsRes.json();
         const devicesData = await devicesRes.json();
-        // console.log(roomsData);
+        //console.log(roomsData);
         // console.log(devicesData);
 
         setRooms(roomsData?.metaData?.roomList || []);

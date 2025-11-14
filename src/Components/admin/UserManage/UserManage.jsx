@@ -19,39 +19,6 @@ export default function UserManage() {
 
   const token = user?.accessToken;
   const adminId = user?.ID;
-
-  // DELETE user
-  const handleDelete = async (u) => {
-    if (!window.confirm(`Are you sure to delete ${u.full_name}?`)) return;
-
-    try {
-      const res = await fetch(`http://localhost:3069/admin/users`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: u.ID,
-          admin_id: adminId,
-        }),
-      });
-
-      const data = await res.json();
-      console.log("Delete response:", data);
-
-      if (res.ok) {
-        setUsers((prev) => prev.filter((usr) => usr.ID !== u.ID));
-        alert("User deleted successfully!");
-      } else {
-        alert("Failed to delete user: " + data.message);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error deleting user");
-    }
-  };
-
   // PATCH user status
   const handleToggleStatus = async (u) => {
     const newStatus = u.status === "active" ? "Locked" : "active";
@@ -66,7 +33,7 @@ export default function UserManage() {
         body: JSON.stringify({
           userId: u.ID,
           status: newStatus,
-          role_id: u.role?.ID || 1,
+          role_id: u.role_id,
           admin_id: adminId,
         }),
       });
@@ -180,9 +147,6 @@ export default function UserManage() {
                 </button>
                 <button className="reset" onClick={() => handleResetPenalty(u)}>
                   ♻️
-                </button>
-                <button className="delete" onClick={() => handleDelete(u)}>
-                  🗑️
                 </button>
               </td>
             </tr>

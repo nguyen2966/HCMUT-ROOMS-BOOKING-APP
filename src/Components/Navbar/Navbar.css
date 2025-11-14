@@ -1,8 +1,15 @@
-.navbar{
+.navbar {
   background: #1768A2;
   display: flex;
   justify-content: space-around;
   height: 70px;
+  
+  /* Make it stick */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000; /* ensures navbar stays above other content */
 }
 
 .navbar-options{

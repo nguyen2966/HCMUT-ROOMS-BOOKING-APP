@@ -13,6 +13,10 @@
   }
 }
 
+.main-content {
+  margin-top: 70px; /* same height as navbar */
+}
+
 .App-header {
   background-color: #282c34;
   min-height: 100vh;

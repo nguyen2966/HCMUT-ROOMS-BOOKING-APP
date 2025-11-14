@@ -18,7 +18,9 @@ function Layout({ children }) {
   return (
     <>
       {!hideLayout && <Navbar />}
-      {children}
+       <main className="main-content">
+        {children}
+      </main>
       {!hideLayout && <Footer />}
     </>
   );

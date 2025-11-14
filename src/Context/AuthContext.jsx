@@ -62,11 +62,11 @@ export const AuthProvider = ({ children }) => {
         }
       );
       
-      const { ID, accessToken: newAccessToken, role } = res.data.metaData;
+      const { ID, accessToken: newAccessToken, role, role_id } = res.data.metaData;
       console.log("Token refreshed successfully");
 
       // Update state and localStorage with complete user data
-      const userData = { ID, accessToken: newAccessToken, role };
+      const userData = { ID, accessToken: newAccessToken, role, role_id };
       setAccessToken(newAccessToken);
       setUser(userData);
       localStorage.setItem("accessToken", newAccessToken);
@@ -132,12 +132,12 @@ export const AuthProvider = ({ children }) => {
         withCredentials: true, // Important: Allow cookies to be set
       });
 
-      const { ID, accessToken, role } = res.data.metaData;
+      const { ID, accessToken, role, role_id } = res.data.metaData;
      // console.log("Raw login response:", res.data.metaData);
 
       // Store in state and localStorage
       // Note: refreshToken is stored in HTTP-only cookie by backend
-      const userData = { ID, accessToken, role };
+      const userData = { ID, accessToken, role, role_id };
       setUser(userData);
       setAccessToken(accessToken);
 
