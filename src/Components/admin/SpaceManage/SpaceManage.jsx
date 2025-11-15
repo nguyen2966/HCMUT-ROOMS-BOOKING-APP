@@ -4,6 +4,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { useAppData } from "../../../Context/AppDataContext";
 import { useAuth } from "../../../Context/AuthContext";
 import "./SpaceManage.css"
+import RoomQR from '../../RoomQR/RoomQR';
 
 // API service functions
 const API_BASE = 'http://localhost:3069'; // Adjust to your actual API base URL
@@ -461,13 +462,7 @@ function RoomModal({ room, onClose, onSave, allDevices, token }) {
               <>
                 <div className="form-section">
                   <h3>QR Code</h3>
-                  <div className="qr-display">
-                    {qrCode ? (
-                      <img src={qrCode} alt="Room QR Code" />
-                    ) : (
-                      <div className="qr-placeholder">Loading QR...</div>
-                    )}
-                  </div>
+                  <RoomQR roomId={ room?.ID }/>
                 </div>
 
                 <div className="form-section">

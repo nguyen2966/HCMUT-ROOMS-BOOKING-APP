@@ -3,7 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import Navbar from './Components/Navbar/Navbar';
 import Footer from './Components/Footer/Footer';
 import LoginSignup from './Pages/LoginSignup';
-import Rooms from './Pages/Rooms';
+import LearningSpaces from './Pages/LearningSpaces';
 import AdminPanel from './Pages/admin/admin';
 import TechnicalTeamPanel from './Pages/technicalteam/technicalteam';
 import { AuthProvider, useAuth } from './Context/AuthContext';
@@ -52,7 +52,7 @@ function AppContent() {
           path="/rooms" 
           element={
             <ProtectedRoute>
-              <Rooms />
+              <LearningSpaces />
             </ProtectedRoute>
           } 
         />
