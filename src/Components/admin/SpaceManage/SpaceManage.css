@@ -212,6 +212,7 @@
         }
 
         .form-group {
+          width: 450px;
           margin-bottom: 16px;
         }
 
@@ -226,7 +227,7 @@
         .form-group input,
         .form-group select,
         .form-group textarea {
-          width: 100%;
+          width: 400px;
           padding: 8px 12px;
           border: 1px solid #ddd;
           border-radius: 6px;

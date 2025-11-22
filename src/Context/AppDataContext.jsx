@@ -1,63 +1,71 @@
-import { createContext, useState, useContext, useEffect } from "react";
+import { createContext, useState, useContext, useEffect, useCallback } from "react";
 import { useAuth } from "./AuthContext";
+import axiosClient from "../config/axiosClient";
 
 const AppDataContext = createContext();
 
 export function AppDataProvider({ children }) {
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
 
   const [rooms, setRooms] = useState([]);
   const [devices, setDevices] = useState([]);
   const [users, setUsers] = useState([]);
   const [configs, setConfigs] = useState([]);
 
-  useEffect(() => {
-    if (!user) return;
+  // 1. Define the fetch logic in a useCallback so it's stable and reusable
+  const refreshData = useCallback(async () => {
+    // Don't fetch if not logged in
+    if (!user || !accessToken) {
+       setRooms([]);
+       setDevices([]);
+       return; 
+    }
 
-      const fetchData = async () => {
-      try {
-        const token = user?.accessToken; // get token from AuthContext
+    try {
+      // console.log("Refreshing App Data..."); // Debugging
 
-        const headers = {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        };
+      // Fetch shared data (Rooms & Devices)
+      const [roomsRes, devicesRes] = await Promise.all([
+        axiosClient.get("/study-space"),
+        axiosClient.get("/study-space/devices")
+      ]);
 
-        // Fetch shared data
-        const roomsRes = await fetch("http://localhost:3069/study-space", { headers });
-        const devicesRes = await fetch("http://localhost:3069/study-space/devices", { headers });
+      setRooms(roomsRes.data?.metaData?.roomList || []);
+      setDevices(devicesRes.data?.metaData?.deviceList || []);
 
-        const roomsData = await roomsRes.json();
-        const devicesData = await devicesRes.json();
-        //console.log(roomsData);
-        // console.log(devicesData);
+      // If admin, fetch protected admin data
+      // Note: Backend might return role_name as 'Admin' or role_id as 3
+      if (user.role === "Admin" || user.role_name === "Admin") {
+        const [usersRes, configsRes] = await Promise.all([
+           axiosClient.get("/admin/users"),
+           axiosClient.get("/admin/configs")
+        ]);
 
-        setRooms(roomsData?.metaData?.roomList || []);
-        setDevices(devicesData?.metaData?.deviceList || []);
-
-        // If admin, fetch all users
-        if (user.role === "Admin") {
-          const usersRes = await fetch("http://localhost:3069/admin/users", { headers });
-          const usersData = await usersRes.json();
-          setUsers(usersData.stack?.users || []);
-
-          const configsRes = await fetch("http://localhost:3069/admin/configs", { headers });
-          const configsData = await configsRes.json();
-          setConfigs(configsData.metaData?.configs || []);
-        } else {
-          setUsers([]);
-        }
-      } catch (err) {
-        console.error("Error fetching data:", err);
+        // Note: Handling the backend inconsistencies (stack vs metaData)
+        setUsers(usersRes.data?.stack?.users || usersRes.data?.metaData?.users || []); 
+        setConfigs(configsRes.data?.metaData?.configs || []);
       }
-    };
+    } catch (err) {
+      console.error("Error fetching app data:", err);
+    }
+  }, [user, accessToken]); // Re-create this function only if user/token changes
 
-
-    fetchData();
-  }, [user]);
+  // 2. Fetch data automatically on mount (or when user logs in)
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
 
   return (
-    <AppDataContext.Provider value={{ rooms, devices, users, configs }}>
+    <AppDataContext.Provider value={{ 
+      rooms, 
+      devices, 
+      users, 
+      configs, 
+      setRooms, 
+      setDevices, 
+      setUsers,
+      refreshData // <--- 3. EXPORT THIS FUNCTION
+    }}>
       {children}
     </AppDataContext.Provider>
   );

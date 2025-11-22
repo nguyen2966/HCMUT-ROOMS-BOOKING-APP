@@ -1,123 +1,67 @@
-import React, { useState, useEffect } from 'react';
-import DatePicker from 'react-datepicker';
+import { useState, useEffect } from 'react';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useAppData } from "../../../Context/AppDataContext";
 import { useAuth } from "../../../Context/AuthContext";
 import "./SpaceManage.css"
-import RoomQR from '../../RoomQR/RoomQR';
+import axiosClient from '../../../config/axiosClient'; // Import the centralized client
 
-// API service functions
-const API_BASE = 'http://localhost:3069'; // Adjust to your actual API base URL
-
-const createAPIHeaders = (token, isFormData = false) => {
-  const headers = {
-    Authorization: `Bearer ${token}`,
-  };
-  if (!isFormData) {
-    headers['Content-Type'] = 'application/json';
-  }
-  return headers;
-};
-
+// --- NEW: Simplified API calls using axiosClient ---
+// Note: No need to pass 'token' anymore; interceptors handle it.
 const roomAPI = {
-  create: async (data, token) => {
-    const res = await fetch(`${API_BASE}/study-space`, {
-      method: 'POST',
-      headers: createAPIHeaders(token),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to create room');
-    return res.json();
+  create: async (data) => {
+    const res = await axiosClient.post('/study-space', data);
+    return res.data?.metaData?.newRoom || res.data;
   },
   
-  update: async (id, data, token) => {
-    const res = await fetch(`${API_BASE}/study-space/${id}`, {
-      method: 'PUT',
-      headers: createAPIHeaders(token),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to update room');
-    return res.json();
+  update: async (id, data) => {
+    const res = await axiosClient.put(`/study-space/${id}`, data);
+    return res.data?.metaData?.updatedRoom || res.data;
   },
   
-  delete: async (id, token) => {
-    const res = await fetch(`${API_BASE}/study-space/${id}`, {
-      method: 'DELETE',
-      headers: createAPIHeaders(token)
-    });
-    if (!res.ok) throw new Error('Failed to delete room');
-    return res.json();
+  delete: async (id) => {
+    const res = await axiosClient.delete(`/study-space/${id}`);
+    return res.data;
   },
   
-  updateStatus: async (id, status, token) => {
-    const res = await fetch(`${API_BASE}/study-space/${id}/status`, {
-      method: 'PATCH',
-      headers: createAPIHeaders(token),
-      body: JSON.stringify({ status })
-    });
-    if (!res.ok) throw new Error('Failed to update status');
-    return res.json();
+  updateStatus: async (id, status) => {
+    const res = await axiosClient.patch(`/study-space/${id}/status`, { status });
+    return res.data;
   },
   
-  uploadImage: async (id, file, token) => {
-    console.log('=== FRONTEND DEBUG ===');
-    console.log('ID:', id);
-    console.log('File:', file);
-    console.log('File type:', file.type);
-    console.log('File size:', file.size);
+  uploadImage: async (id, file) => {
     const formData = new FormData();
     formData.append('images', file);
-      // Kiểm tra FormData
-    for (let pair of formData.entries()) {
-      console.log(pair[0], pair[1]);
-    }
 
-    const res = await fetch(`${API_BASE}/study-space/${id}/upload`, {
-      method: 'POST',
+    const res = await axiosClient.post(`/study-space/${id}/upload`, formData, {
       headers: {
-          Authorization: `Bearer ${token}`
-        },
-      body: formData
+        'Content-Type': 'multipart/form-data', 
+      },
     });
-    if (!res.ok) throw new Error('Failed to upload image');
-    return res.json();
+    return res.data;
   },
   
-  deleteImage: async (roomId, imageId, token) => {
-    const res = await fetch(`${API_BASE}/study-space/${roomId}/delete-img/${imageId}`, {
-      method: 'DELETE',
-      headers: createAPIHeaders(token)
-    });
-    if (!res.ok) throw new Error('Failed to delete image');
-    return res.json();
+  deleteImage: async (roomId, imageId) => {
+    const res = await axiosClient.delete(`/study-space/${roomId}/delete-img/${imageId}`);
+    return res.data;
   },
   
-  getQR: async (id, token) => {
-    const res = await fetch(`${API_BASE}/study-space/${id}/qr`, {
-      headers: createAPIHeaders(token)
-    });
-    if (!res.ok) throw new Error('Failed to get QR code');
-    return res.json();
+  getQR: async (id) => {
+    const res = await axiosClient.get(`/study-space/${id}/qr`);
+    return res.data?.metaData || res.data;
   },
   
-  getDevices: async (token) => {
-    const res = await fetch(`${API_BASE}/study-space/devices`, {
-      headers: createAPIHeaders(token)
-    });
-    if (!res.ok) throw new Error('Failed to get devices');
-    return res.json();
+  getDevices: async () => {
+    const res = await axiosClient.get('/study-space/devices');
+    return res.data?.metaData || res.data;
   },
   
-  mapIoT: async (id, iotData, token) => {
-    const res = await fetch(`${API_BASE}/study-space/${id}/iot-map`, {
-      method: 'POST',
-      headers: createAPIHeaders(token),
-      body: JSON.stringify(iotData)
-    });
-    if (!res.ok) throw new Error('Failed to map IoT devices');
-    return res.json();
+  mapIoT: async (id, iotData) => {
+    const res = await axiosClient.post(`/study-space/${id}/iot-map`, iotData);
+    return res.data;
   }
 };
+
+// --- Components ---
 
 function RoomTable({ rooms, onEdit, onDelete, onStatusChange, onViewDevices }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -186,7 +130,6 @@ function RoomTable({ rooms, onEdit, onDelete, onStatusChange, onViewDevices }) {
                 </td>
                 <td className="actions">
                   <button className="icon-btn" onClick={() => onEdit(r)} title="Edit">✎</button>
-                  <button className="icon-btn" onClick={() => onDelete(r.ID)} title="Delete">🗑</button>
                 </td>
               </tr>
             ))
@@ -228,8 +171,10 @@ function DeviceModal({ room, onClose }) {
   );
 }
 
-function RoomModal({ room, onClose, onSave, allDevices, token }) {
+function RoomModal({ room, onClose, onSave, onRefresh }) {
   const { user } = useAuth();
+  // Remove token from here, API calls don't need it passed explicitly anymore
+  
   const [formData, setFormData] = useState({
     name: '',
     building: '',
@@ -237,7 +182,7 @@ function RoomModal({ room, onClose, onSave, allDevices, token }) {
     capacity: 1,
     status: 'available',
     description: '',
-    manager_id: user?.id || null,
+    manager_id: user?.ID || null, // Ensure we use user.ID (uppercase matches backend)
     ...room
   });
   const [selectedFile, setSelectedFile] = useState(null);
@@ -245,24 +190,19 @@ function RoomModal({ room, onClose, onSave, allDevices, token }) {
   const [loading, setLoading] = useState(false);
   const [availableDevices, setAvailableDevices] = useState([]);
   const [selectedDeviceIds, setSelectedDeviceIds] = useState([]);
-  const [newDevice, setNewDevice] = useState({
-    name: '',
-    type: 'projector',
-    description: '',
-    energy_consumption: 0
-  });
 
   useEffect(() => {
     if (room?.ID) {
       loadQRCode(room.ID);
     }
     loadDevices();
+    // eslint-disable-next-line
   }, [room]);
 
   const loadDevices = async () => {
     try {
-      const data = await roomAPI.getDevices(token);
-      setAvailableDevices(data.devices || []);
+      const data = await roomAPI.getDevices();
+      setAvailableDevices(data.deviceList || []);
     } catch (err) {
       console.error('Failed to load devices:', err);
     }
@@ -270,12 +210,10 @@ function RoomModal({ room, onClose, onSave, allDevices, token }) {
 
   const loadQRCode = async (id) => {
     try {
-      const data = await roomAPI.getQR(id, token);
-      setQrCode(data.qrCode || data.qr_code || '');
+      const data = await roomAPI.getQR(id);
+      setQrCode(data.qr_path || '');
     } catch (err) {
       console.error('Failed to load QR code:', err);
-      // Generate fallback QR code
-      setQrCode(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=room-${id}`);
     }
   };
 
@@ -295,15 +233,31 @@ function RoomModal({ room, onClose, onSave, allDevices, token }) {
     
     setLoading(true);
     try {
-      await roomAPI.uploadImage(room.ID, selectedFile, token);
+      await roomAPI.uploadImage(room.ID, selectedFile);
       alert('Image uploaded successfully!');
       setSelectedFile(null);
+      if (onRefresh) onRefresh();
     } catch (err) {
       alert('Failed to upload image: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  const handleDeleteImage = async (imageId) => {
+      if (!window.confirm("Delete this image?")) return;
+  
+      setLoading(true);
+      try {
+        await roomAPI.deleteImage(room.ID, imageId);
+        alert('Image deleted successfully!');
+        if (onRefresh) onRefresh(); // Refresh data to remove image from UI
+      } catch (err) {
+        alert('Failed to delete image: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const handleMapIoT = async () => {
     if (!room?.ID) {
@@ -318,9 +272,10 @@ function RoomModal({ room, onClose, onSave, allDevices, token }) {
     
     setLoading(true);
     try {
-      await roomAPI.mapIoT(room.ID, { device_ids: selectedDeviceIds }, token);
+      await roomAPI.mapIoT(room.ID, { deviceIds: selectedDeviceIds });
       alert('IoT devices mapped successfully!');
       setSelectedDeviceIds([]);
+      if (onRefresh) onRefresh();
     } catch (err) {
       alert('Failed to map IoT devices: ' + err.message);
     } finally {
@@ -436,7 +391,38 @@ function RoomModal({ room, onClose, onSave, allDevices, token }) {
 
             {room?.ID && (
               <div className="form-section">
-                <h3>Image Upload</h3>
+                <h3>Image Management</h3>
+                
+                {/* Display Images */}
+                 <div className="current-images-container" style={{ marginBottom: '15px' }}>
+                  {room.room_image && room.room_image.length > 0 ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      {room.room_image.map(img => (
+                        <div key={img.id} style={{ position: 'relative', width: '100px', height: '100px' }}>
+                          <img 
+                            src={img.image_url} 
+                            alt="Room" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} 
+                          />
+                          <button 
+                            onClick={() => handleDeleteImage(img.id)}
+                            style={{
+                              position: 'absolute', top: -5, right: -5, 
+                              background: 'red', color: 'white', border: 'none', 
+                              borderRadius: '50%', width: '20px', height: '20px', 
+                              cursor: 'pointer', fontSize: '12px', lineHeight: '1'
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ color: '#666', fontStyle: 'italic' }}>No images uploaded yet.</p>
+                  )}
+                </div>
+
                 <div className="image-upload">
                   <input
                     type="file"
@@ -462,7 +448,9 @@ function RoomModal({ room, onClose, onSave, allDevices, token }) {
               <>
                 <div className="form-section">
                   <h3>QR Code</h3>
-                  <RoomQR roomId={ room?.ID }/>
+                   <div style={{textAlign: 'center'}}>
+                     {qrCode ? <img src={qrCode} alt="Room QR" style={{maxWidth: '100%', maxHeight: '200px'}} /> : 'Loading QR...'}
+                  </div>
                 </div>
 
                 <div className="form-section">
@@ -537,16 +525,11 @@ function RoomModal({ room, onClose, onSave, allDevices, token }) {
 }
 
 export default function SpaceManage() {
-  const { rooms: contextRooms, refreshRooms } = useAppData();
+  const { rooms: contextRooms, refreshData } = useAppData();
   const [rooms, setRooms] = useState(contextRooms || []);
   const [modalOpen, setModalOpen] = useState(false);
   const [deviceModalOpen, setDeviceModalOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [allDevices, setAllDevices] = useState([]);
-
-  const {user} = useAuth();
-  const token = user?.accessToken;
-
 
   useEffect(() => {
     setRooms(contextRooms || []);
@@ -562,46 +545,32 @@ export default function SpaceManage() {
     setModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this room?')) {
-      return;
-    }
-
-    try {
-      await roomAPI.delete(id, token);
-      setRooms(prev => prev.filter(r => r.ID !== id));
-      if (refreshRooms) refreshRooms();
-      alert('Room deleted successfully!');
-    } catch (err) {
-      alert('Failed to delete room: ' + err.message);
-    }
-  };
-
   const handleStatusChange = async (id, newStatus) => {
     try {
-      await roomAPI.updateStatus(id, newStatus, token);
-      setRooms(prev => prev.map(r => 
-        r.ID === id ? { ...r, status: newStatus } : r
-      ));
-      if (refreshRooms) refreshRooms();
+      await roomAPI.updateStatus(id, newStatus);
+      
+      // 2. Refresh
+      if (refreshData) await refreshData();
+      
     } catch (err) {
       alert('Failed to update status: ' + err.message);
     }
   };
 
   const handleSave = async (formData) => {
-    if (selectedRoom) {
-      // Update existing room
-      await roomAPI.update(selectedRoom.ID, formData, token);
-      setRooms(prev => prev.map(r => 
-        r.ID === selectedRoom.ID ? { ...r, ...formData } : r
-      ));
-    } else {
-      // Create new room
-      const result = await roomAPI.create(formData, token);
-      setRooms(prev => [...prev, result.room || result]);
+    try {
+      if (selectedRoom) {
+        await roomAPI.update(selectedRoom.ID, formData);
+      } else {
+        await roomAPI.create(formData);
+      }
+      
+      // 2. Refresh
+      if (refreshData) await refreshData();
+      
+    } catch (err) {
+      alert(err.message); // Handle errors from modal save
     }
-    if (refreshRooms) refreshRooms();
   };
 
   const handleViewDevices = (room) => {
@@ -621,7 +590,6 @@ export default function SpaceManage() {
       <RoomTable 
         rooms={rooms}
         onEdit={handleEdit}
-        onDelete={handleDelete}
         onStatusChange={handleStatusChange}
         onViewDevices={handleViewDevices}
       />
@@ -631,8 +599,7 @@ export default function SpaceManage() {
           room={selectedRoom}
           onClose={() => setModalOpen(false)}
           onSave={handleSave}
-          allDevices={allDevices}
-          token={token}
+          onRefresh={refreshData}
         />
       )}
 

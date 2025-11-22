@@ -1,159 +1,159 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./UserManage.css";
 import user_icon from "../../../Assets/user_icon.png";
 import { useAppData } from "../../../Context/AppDataContext";
 import { useAuth } from "../../../Context/AuthContext";
+import axiosClient from "../../../config/axiosClient";
 
 export default function UserManage() {
-  const { users: contextUsers } = useAppData();
-  const { user } = useAuth(); // contains accessToken and ID
+  // 1. Use refreshData from context
+  const { users: contextUsers, refreshData } = useAppData();
+  const { user } = useAuth(); 
+  
   const [users, setUsers] = useState(contextUsers || []);
   const [searchTerm, setSearchTerm] = useState("");
-  console.log(contextUsers);
-  // When context updates (after fetch), sync with local state
-  React.useEffect(() => {
-    if (contextUsers?.length) {
-      setUsers(contextUsers);
-    }
+
+  // Sync local state with global context updates
+  useEffect(() => {
+    setUsers(contextUsers || []);
   }, [contextUsers]);
 
-  const token = user?.accessToken;
   const adminId = user?.ID;
-  // PATCH user status
+
+  // --- Logic: Toggle Status ---
   const handleToggleStatus = async (u) => {
-    const newStatus = u.status === "active" ? "Locked" : "active";
-
+    // Fix Case Sensitivity: Backend likely uses "Active"/"Locked" (Capitalized)
+    const newStatus = u.status === "Active" ? "Locked" : "Active";
+    
     try {
-      const res = await fetch(`http://localhost:3069/admin/users/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: u.ID,
-          status: newStatus,
-          role_id: u.role_id,
-          admin_id: adminId,
-        }),
+      await axiosClient.patch('/admin/users/status', {
+        userId: u.ID,
+        status: newStatus,
+        role_id: u.role_id,
+        admin_id: adminId, // Note: Keeping this until backend is refactored to read from token
       });
 
-      const data = await res.json();
-      console.log("Status update:", data);
-
-      if (res.ok) {
-        setUsers((prev) =>
-          prev.map((usr) =>
-            usr.ID === u.ID ? { ...usr, status: newStatus } : usr
-          )
-        );
-        alert(`User status updated to ${newStatus}`);
-      } else {
-        alert("Failed to update status: " + data.message);
-      }
+      // 2. Trigger global refresh -> UI updates automatically
+      if (refreshData) await refreshData();
+      
     } catch (err) {
       console.error(err);
-      alert("Error updating status");
+      alert("Failed to update status: " + (err.response?.data?.message || err.message));
     }
   };
 
-  // PATCH reset penalty
+  // --- Logic: Reset Penalty ---
   const handleResetPenalty = async (u) => {
+    if (!window.confirm(`Reset penalties for ${u.full_name}?`)) return;
+
     try {
-      const res = await fetch(`http://localhost:3069/admin/users/reset-penalty`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: u.ID,
-          admin_id: adminId,
-        }),
+      await axiosClient.patch('/admin/users/reset-penalty', {
+        userId: u.ID,
+        admin_id: adminId,
       });
 
-      const data = await res.json();
-      console.log("Reset penalty:", data);
+      if (refreshData) await refreshData();
+      alert(`Penalty reset successfully for ${u.full_name}`);
 
-      if (res.ok) {
-        setUsers((prev) =>
-          prev.map((usr) =>
-            usr.ID === u.ID ? { ...usr, penalty_penalty_user_idTouser: [] } : usr
-          )
-        );
-        alert(`Penalty reset for ${u.full_name}`);
-      } else {
-        alert("Failed to reset penalty: " + data.message);
-      }
     } catch (err) {
       console.error(err);
-      alert("Error resetting penalty");
+      alert("Failed to reset penalty: " + (err.response?.data?.message || err.message));
     }
   };
 
-  // Search filter
+
+  // Filter Logic
   const filteredUsers = users.filter((u) =>
-    new RegExp(searchTerm, "i").test(u.full_name)
+    u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="user-manage">
-      <div className="user-manage-header">
-        <h2>User Management</h2>
-        <input
-          type="text"
-          placeholder="🔍 Search user..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-bar"
-        />
-      </div>
+      <div className="user-manage-container">
+        {/* Header */}
+        <div className="user-manage-header">
+          <h2>User Management</h2>
+          <input
+            type="text"
+            placeholder="Search by name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-bar"
+          />
+        </div>
 
-      <table className="user-table">
-        <thead>
-          <tr>
-            <th>Full Name</th>
-            <th>Penalty</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredUsers.map((u) => (
-            <tr key={u.ID}>
-              <td className="user-info">
-                <img src={user_icon} alt={u.full_name} className="user-img" />
-                <span className="user-name">{u.full_name}</span>
-              </td>
-              <td>{u.penalty_penalty_user_idTouser?.length || 0}</td>
-              <td className="email">{u.email}</td>
-              <td>
-                <span className={`role ${u.role?.role_name?.toLowerCase().replace(" ", "-")}`}>
-                  {u.role?.role_name}
-                </span>
-              </td>
-              <td>
-                <span
-                  className={`status ${u.status === "active" ? "active" : "locked"}`}
-                >
-                  {u.status}
-                </span>
-              </td>
-              <td>
-                <button className="edit" onClick={() => handleToggleStatus(u)}>
-                  🔄
-                </button>
-                <button className="reset" onClick={() => handleResetPenalty(u)}>
-                  ♻️
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        {/* Scrollable Table Area */}
+        <div className="table-scroll-wrapper">
+          <table className="user-table">
+            <thead>
+              <tr>
+                <th>User Info</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Penalty</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((u) => (
+                  <tr key={u.ID}>
+                    <td>
+                      <div className="user-info">
+                        <img src={user_icon} alt="user" className="user-img" />
+                        <span className="user-name">{u.full_name}</span>
+                      </div>
+                    </td>
+                    <td className="email">{u.email}</td>
+                    <td>
+                      <span className={`role ${u.role?.role_name?.toLowerCase() || 'student'}`}>
+                        {u.role?.role_name || 'Student'}
+                      </span>
+                    </td>
+                    <td>
+                      {/* Display penalty count cleanly */}
+                      <span style={{fontWeight: 'bold', color: u.penalty_penalty_user_idTouser?.length > 0 ? 'red' : '#ccc'}}>
+                        {u.penalty_penalty_user_idTouser?.length || 0}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`status ${u.status?.toLowerCase()}`}>
+                        {u.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="actions-cell">
+                        <button 
+                          className="action-btn edit" 
+                          onClick={() => handleToggleStatus(u)} 
+                          title={u.status === "Active" ? "Lock User" : "Activate User"}
+                        >
+                          {u.status === "Active" ? "🔒" : "🔓"}
+                        </button>
+                        <button 
+                          className="action-btn reset" 
+                          onClick={() => handleResetPenalty(u)} 
+                          title="Reset Penalty"
+                        >
+                          ⚠️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: "center", padding: "30px", color: "#999" }}>
+                    No users found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
-
