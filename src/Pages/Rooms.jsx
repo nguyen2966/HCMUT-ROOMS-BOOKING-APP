@@ -9,29 +9,6 @@ import axios from "axios";
 // import { useAppData } from "../Context/AppDataContext"; 
 import { useAuth } from "../Context/AuthContext";
 
-const getDateString = (daysToAdd = 0) => {
-  const date = new Date();
-  date.setDate(date.getDate() + daysToAdd);
-  return date.getFullYear() + '-' + 
-        (date.getMonth() + 1).toString().padStart(2, '0') + '-' + 
-        date.getDate().toString().padStart(2, '0');
-};
-
-const todayStr = getDateString(0);
-const tomorrowStr = getDateString(1);
-
-const mockAvailableSlots = {
-  'H1.301': {
-    [todayStr]: ['08:00 - 09:00', '10:00 - 12:00', '14:00 - 17:00'],
-    [tomorrowStr]: ['09:30 - 11:30', '13:00 - 15:00'],
-  },
-  'H2.106': {
-    [todayStr]: ['07:00 - 10:00', '15:00 - 17:00'],
-    [tomorrowStr]: ['08:00 - 12:00'],
-  },
-};
-// -----------------------------------------------------------
-
 function SpaceCard({ room, onOpen }) {
   const normalized = room.status?.toLowerCase();
   const statusClass =
@@ -73,18 +50,16 @@ function SpaceCard({ room, onOpen }) {
 
 export default function Rooms() {
   const { accessToken, user } = useAuth(); 
-  
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [selected, setSelected] = useState(null);
   const [open, setOpen] = useState(false);
+
   const [startDate, setStartDate] = useState(new Date());
+  const [startTimeStr, setStartTimeStr] = useState("08:00");
+  const [endTimeStr, setEndTimeStr] = useState("09:00");
   const [teamSize, setTeamSize] = useState(1);
-
-  const [availableSlots, setAvailableSlots] = useState([]);
-  const [selectedSlot, setSelectedSlot] = useState(null);
-
   const [isBooking, setIsBooking] = useState(false);
 
   useEffect(() => {
@@ -106,89 +81,68 @@ export default function Rooms() {
     fetchRooms();
   }, [accessToken]);
 
-  const loadAvailableSlots = (roomName, date) => {
-    if (!roomName) return;
-    const formattedDate =
-      date.getFullYear() +
-      "-" +
-      (date.getMonth() + 1).toString().padStart(2, "0") +
-      "-" +
-      date.getDate().toString().padStart(2, "0");
-
-    const slots = mockAvailableSlots[roomName]?.[formattedDate] || [];
-    setAvailableSlots(slots);
-    setSelectedSlot(null);
-  };
-
   const openModal = (room) => {
     setSelected(room);
     setOpen(true);
-    const today = new Date();
-    setStartDate(today);
+    setStartDate(new Date());
+    setStartTimeStr("08:00");
+    setEndTimeStr("09:00");
     setTeamSize(1);
-    loadAvailableSlots(room.name, today);
   };
 
   const closeModal = () => {
     setSelected(null);
     setOpen(false);
-    setAvailableSlots([]);
-    setSelectedSlot(null);
     setIsBooking(false);
   };
 
-  const handleDateChange = (date) => {
-    setStartDate(date);
-    if (selected) {
-      loadAvailableSlots(selected.name, date);
-    }
-  };
-
-  const handleSlotSelect = (slot) => {
-    setSelectedSlot(slot);
-  };
-
   const handleReserve = async () => {
-    if (!selectedSlot || !selected || !user) {
-        alert("Vui lòng chọn slot và đăng nhập trước!");
-        return;
+    if (!selected || !user) {
+      alert("Vui lòng đăng nhập để đặt phòng!");
+      return;
+    }
+
+    // Validate giờ
+    if (startTimeStr >= endTimeStr) {
+      alert("Giờ kết thúc phải sau giờ bắt đầu!");
+      return;
     }
 
     setIsBooking(true);
 
     try {
-        const [startStr, endStr] = selectedSlot.split(' - ');
-        const [startHour, startMin] = startStr.split(':').map(Number);
-        const [endHour, endMin] = endStr.split(':').map(Number);
+      // 1. Tạo object Date cho start_time
+      const [startHour, startMin] = startTimeStr.split(":").map(Number);
+      const startDateTime = new Date(startDate);
+      startDateTime.setHours(startHour, startMin, 0, 0);
 
-        const startTime = new Date(startDate);
-        startTime.setHours(startHour, startMin, 0, 0);
+      // 2. Tạo object Date cho end_time
+      const [endHour, endMin] = endTimeStr.split(":").map(Number);
+      const endDateTime = new Date(startDate);
+      endDateTime.setHours(endHour, endMin, 0, 0);
 
-        const endTime = new Date(startDate);
-        endTime.setHours(endHour, endMin, 0, 0);
+      // 3. Chuẩn bị payload gửi Backend
+      const payload = {
+        room_id: selected.ID,
+        booking_user: user.ID,
+        start_time: startDateTime, // Axios tự format ISO String
+        end_time: endDateTime,
+      };
 
-        const payload = {
-            room_id: selected.ID,
-            booking_user: user.ID,
-            start_time: startTime,
-            end_time: endTime
-        };
+      // 4. Gọi API
+      await axios.post("http://localhost:3069/booking", payload, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
 
-        const res = await axios.post('http://localhost:3069/booking', payload, {
-            headers: { Authorization: `Bearer ${accessToken}` }
-        });
-
-        if (res.status === 200) {
-            alert("✅ Đặt phòng thành công!");
-            closeModal();
-        }
-
+      alert(`✅ Đặt phòng ${selected.name} thành công!\nThời gian: ${startTimeStr} - ${endTimeStr} ngày ${startDate.toLocaleDateString('en-GB')}`);
+      closeModal();
+      
     } catch (error) {
-        console.error("Lỗi đặt phòng:", error);
-        const msg = error.response?.data?.message || error.message;
-        alert(`❌ Đặt phòng thất bại: ${msg}`);
+      console.error("Lỗi đặt phòng:", error);
+      const msg = error.response?.data?.message || error.message;
+      alert(`❌ Đặt phòng thất bại: ${msg}`);
     } finally {
-        setIsBooking(false);
+      setIsBooking(false);
     }
   };
 
@@ -240,11 +194,11 @@ export default function Rooms() {
 
               <div className="sm-actions">
                 <button
-                  className={`btn save ${!selectedSlot || isBooking ? "disabled" : ""}`}
+                  className="btn save"
                   onClick={handleReserve}
-                  disabled={!selectedSlot || isBooking}
+                  disabled={isBooking}
                 >
-                  {isBooking ? "Booking..." : "Reserve"}
+                  {isBooking ? "Processing..." : "Reserve"}
                 </button>
               </div>
             </div>
@@ -270,34 +224,33 @@ export default function Rooms() {
               </div>
 
               <div className="sm-calendar">
+                <div className="time-selection-box">
+                    <div className="time-field">
+                        <label>Start Time</label>
+                        <input 
+                            type="time" 
+                            className="time-input"
+                            value={startTimeStr}
+                            onChange={(e) => setStartTimeStr(e.target.value)}
+                        />
+                    </div>
+                    <div className="time-field">
+                        <label>End Time</label>
+                        <input 
+                            type="time" 
+                            className="time-input"
+                            value={endTimeStr}
+                            onChange={(e) => setEndTimeStr(e.target.value)}
+                        />
+                    </div>
+                </div>
                 <div className="calendar-box">
                   <DatePicker
                     selected={startDate}
-                    onChange={handleDateChange}
+                    onChange={(date) => setStartDate(date)}
                     inline
                     minDate={new Date()}
                   />
-                </div>
-                <hr style={{ margin: '10px 0' }} />
-
-                <div className="available-slots">
-                  <h4 className="slots-title">Available Slots for {startDate.toLocaleDateString('en-GB')}</h4>
-                  
-                  {availableSlots.length > 0 ? (
-                    <div className="slots-list">
-                      {availableSlots.map((slot, index) => (
-                        <button
-                          key={index}
-                          className={`slot-pill ${selectedSlot === slot ? 'selected' : ''}`}
-                          onClick={() => handleSlotSelect(slot)}
-                        >
-                          {slot}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="no-slots">No available slots on this date.</p>
-                  )}
                 </div>
 
                 <RoomQR roomId={selected?.ID} roomName={selected?.name} />
