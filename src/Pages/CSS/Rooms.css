@@ -1,130 +1,32 @@
-.rooms-page{display:flex;gap:20px;padding:20px;position:relative}
-.rooms-sidebar{width:220px}
-.user-box{
-	background:#fff;
-    border-radius:6px;
-    padding:12px;
-    border:1px solid #eee;
-    box-shadow:0 1px 2px rgba(0,0,0,0.03);
+.sm-actions .btn {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
 }
-.rooms-nav{margin-top:0px}
-.rooms-nav .nav-item{
-	background: #fff;
-    padding: 12px;
-    border-radius: 6px;
-    color: #333;
-    font-weight: 700;
-    border: 1px solid #eee;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-    margin-top: 12px;
+.sm-actions .btn.save {
+    background: #26e536;
+    color: white;
 }
-.rooms-nav .nav-item.active{
-	background: #e6e6e6;
-    color: #666;
-    font-weight: 700;
-    border: 1px solid #ddd;
-    box-shadow: none
+.sm-actions .btn.save:hover:not(.disabled) {
+    background: #22c55e;
 }
-.rooms-main{flex:1;background:transparent}
-.page-title{margin:8px 0 18px}
-.rooms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:24px}
-.room-card{background:#fff;border-radius:6px;border:1px solid #eee;padding:12px;display:flex;gap:12px;align-items:center;cursor:pointer;box-shadow:0 1px 0 rgba(0,0,0,0.03)}
-.room-thumb{width:90px;height:90px;background:#f4f4f4;border-radius:4px;border:1px solid #f0f0f0}
-.room-info{flex:1}
-.room-id{font-weight:700}
-.room-status{font-size:13px;margin-top:6px}
-.room-card.available .room-status .green{color:#1aa84b}
-.room-card.inuse .room-status .teal{color:#1aa8a8}
-.room-card.checkedout .room-status .muted{color:#999}
-
-.room-panel-overlay{
-	/* overlay is constrained to the main content area by using absolute positioning
-		 and leaving the sidebar space free. The panel is centered inside this area. */
-	position:absolute;
-	left:240px; /* sidebar width + page padding */
-	right:0px;
-	top: 300px;
-	bottom:0;
-	background:rgba(255,255,255,0.06); /* subtle dim */
-	backdrop-filter: blur(4px);
-	display:flex;
-	align-items:center;
-	justify-content:center;
-	z-index:50;
+.sm-actions .btn.disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+    opacity: 0.5;
 }
-.room-panel{width:880px;background:#fff;border-radius:6px;padding:18px;border:1px solid #ddd;box-shadow:0 24px 80px rgba(0,0,0,0.18);max-height:80vh;overflow:auto}
-.panel-inner{display:flex;gap:12px}
-.panel-left{flex:1;padding:14px}
-.panel-right{width:380px;border-left:1px solid #eee;padding-left:18px}
-.panel-thumb{
-	width:100%;
-	height:100%;
-	background:#f6f6f6;
-	margin:6px 0;
-	border:1px solid #eee;
-	border-radius:6px;
-	box-shadow:inset 0 1px 0 rgba(255,255,255,0.6)
-}
-.status-text{margin:6px 0}
-.dates{font-size:13px;color:#333;margin:8px 0}
-.room-meta{margin-top:10px;font-size:14px;color:#222}
-.panel-actions{display:flex;gap:16px;margin-top:28px}
-.btn{padding:12px 28px;border-radius:10px;border:0;cursor:pointer;font-weight:600}
-.btn-green{background:#19a34a;color:#fff;box-shadow:0 6px 0 rgba(0,0,0,0.04)}
-.btn-red{background:#e24d4d;color:#fff}
-.btn-dark{background:#333;color:#fff}
-
-.qr-area{text-align:center}
-.qr-center{display:flex;justify-content:center;padding:10px}
-.qr-center img{width:200px;height:auto}
-/* subtle adjustment for labels inside panel */
-.panel-left h3{margin:4px 0 8px;font-size:20px}
-.status-text{font-size:13px;color:#666}
-
-/* Make reserve button centered and larger like mockup */
-.panel-actions{justify-content:flex-start}
-.panel-actions .btn-green{padding:12px 40px;border-radius:8px}
 
 .team-label{font-weight:700;margin-right:8px}
 .team-input-wrap{display:flex;align-items:center}
 .team-input{width:86px;padding:8px;border-radius:8px;border:1px solid #e6e6e6;background:#fff;font-weight:600;text-align:center}
-.time-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.time-field{display:flex;flex-direction:column}
-.time-field label{font-size:13px;color:#666;margin-bottom:6px}
-.time-input{padding:8px;border-radius:6px;border:1px solid #e0e0e0}
 .clock-icon{margin-left:auto;padding:8px;border-radius:50%;border:1px solid #e0e0e0;background:#fff;cursor:pointer}
-.calendar-box{height:300px;background:#fff;margin-top:10px;border-radius:6px;overflow:auto;border:1px solid #f0f0f0;padding:6px}
-.qr-small{display:flex;justify-content:center;margin-top:12px}
-.qr-small img{width:120px;height:120px}
-.btn.create{margin-top:12px;width:100%;background:#f6f6f6;padding:10px;border-radius:8px;border:1px solid #e6e6e6}
 
 /* tag styles reused from admin page */
 .sm-tags{margin-top:8px}
 .tag{border:1px solid #dedede;padding:6px 10px;border-radius:16px;margin-right:8px;background:#fff}
-.tag.active{background:#f0f0f0}
-
-@media (max-width:900px){.rooms-page{flex-direction:column}.rooms-sidebar{width:100%}}
-
-@media (max-width: 960px){
-	.room-panel{width:96%;flex-direction:column}
-	.panel-right{width:100%;border-left:0;border-top:1px solid #e6e6e6;padding-left:0}
-	.panel-thumb{height:220px}
-}
-
-/* vertical / compact room panel (mobile-like) */
-.room-panel-vertical{width:340px;padding:18px;border-radius:6px}
-.rp-vertical{display:flex;flex-direction:column;gap:12px}
-.panel-actions-vertical{display:flex;flex-direction:column;gap:12px;margin-top:8px}
-.panel-actions-vertical .btn{width:100%;padding:10px;border-radius:6px}
-.panel-actions-vertical .btn-green{background:#19a34a;color:#fff}
-.panel-actions-vertical .btn-red{background:#d83b3b;color:#fff}
-.panel-actions-vertical .btn-dark{background:#333;color:#fff}
-.room-panel-vertical .panel-thumb{height:160px;border-radius:4px}
-.room-panel-vertical .dates{font-size:13px;color:#333}
-
-@media (max-width:900px){
-  .room-panel-vertical{width:90%;position:static}
-}
 
 /* Learning Spaces specific styles (scoped) */
 .learning-spaces .ls-room-card{
@@ -142,14 +44,13 @@
 	height:240px;
 	width: 280px;
 	background: repeating-conic-gradient(
-	    #cccccc 0% 25%,
-	    #ffffff 0% 50%
+		#cccccc 0% 25%,
+		#ffffff 0% 50%
 	) 0 / 20px 20px;
 	border-bottom:1px solid #f0f0f0;
 }
 .learning-spaces .ls-room-card .room-info{padding:18px}
 .learning-spaces .ls-room-card .room-id{font-weight:700;font-size:15px;color:#111}
-.learning-spaces .ls-room-card .room-meta{margin-top:8px;color:#333;font-size:14px}
 .learning-spaces .ls-room-card .status-pill{
 	padding:6px 14px;
 	border-radius:20px;
@@ -206,4 +107,69 @@
 	flex-wrap:nowrap;
 	margin-top:14px
 }
+/* Learning Spaces Styles */
+.learning-spaces {
+	padding: 2rem;
+	max-width: 1400px;
+	margin: 0 auto;
+}
+.page-title {
+	margin-bottom: 2rem;
+	color: #1a1a1a;
+}
 
+/* Calendar Section */
+.sm-calendar {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+.calendar-box {
+	border: 1px solid #e0e0e0;
+	border-radius: 8px;
+	padding: 0.5rem;
+}
+/* Available Slots */
+.available-slots {
+	padding: 1rem;
+	background: rgba(237, 230, 237, 0.733);
+	border-radius: 8px;
+}
+.slots-title {
+	margin-bottom: 1rem;
+	color: #1a1a1a;
+}
+.slots-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+.slot-pill {
+	display: inline-block;
+	padding: 0.5rem 1rem;
+	background: white;
+	border: 2px solid #e0e0e0;
+	border-radius: 6px;
+	color: #1a1a1a;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+.slot-pill:hover {
+	border-color: #667eea;
+	background: #eef2ff;
+}
+.slot-pill.selected {
+	background: #667eea;
+	color: white;
+	border-color: #667eea;
+}
+.no-slots {
+	color: #999;
+	font-style: italic;
+}
+
+.reserve-hint {
+	margin-top: 0.5rem;
+	color: #ef4444;
+	text-align: center;
+}
