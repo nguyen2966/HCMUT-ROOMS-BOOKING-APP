@@ -37,20 +37,25 @@
 .room-card.inuse .room-status .teal{color:#1aa8a8}
 .room-card.checkedout .room-status .muted{color:#999}
 
-.room-panel-overlay{
-	/* overlay is constrained to the main content area by using absolute positioning
-		 and leaving the sidebar space free. The panel is centered inside this area. */
-	position:absolute;
-	left:240px; /* sidebar width + page padding */
-	right:0px;
-	top: 300px;
-	bottom:0;
-	background:rgba(255,255,255,0.06); /* subtle dim */
-	backdrop-filter: blur(4px);
-	display:flex;
-	align-items:center;
-	justify-content:center;
-	z-index:50;
+.room-panel-overlay {
+    /* Sử dụng fixed để khung luôn nằm đè lên trên toàn bộ màn hình cửa sổ trình duyệt */
+    position: fixed; 
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    
+    /* Căn giữa nội dung bên trong (modal) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Màu nền mờ phía sau */
+    background: rgba(0, 0, 0, 0.5); /* Màu đen mờ để nổi bật modal hơn */
+    backdrop-filter: blur(4px);
+    
+    /* Đảm bảo nó nằm trên cùng, cao hơn cả Header và Sidebar */
+    z-index: 1000; 
 }
 .room-panel{width:880px;background:#fff;border-radius:6px;padding:18px;border:1px solid #ddd;box-shadow:0 24px 80px rgba(0,0,0,0.18);max-height:80vh;overflow:auto}
 .panel-inner{display:flex;gap:12px}
