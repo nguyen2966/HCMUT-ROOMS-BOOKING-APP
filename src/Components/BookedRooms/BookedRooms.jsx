@@ -1,27 +1,61 @@
-// BookedRooms.jsx
-import React, { useState } from 'react'
-import 'react-datepicker/dist/react-datepicker.css'
-import './BookedRooms.css'
+import React, { useState, useEffect } from 'react';
+import 'react-datepicker/dist/react-datepicker.css';
+import "./BookedRooms.css";
+import axios from 'axios';
+import { useAuth } from '../../Context/AuthContext';
 
-const mockRooms = [
-  { id: 'H2.201', status: 'available', img: null },
-  { id: 'H3.105', status: 'inuse', img: null },
-  { id: 'H3.406', status: 'checkedout', img: null },
-  { id: 'H1.210', status: 'checkedout', img: null },
-  { id: 'H1.506', status: 'checkedout', img: null },
-  { id: 'H1.406', status: 'checkedout', img: null }
-]
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleString('en-GB', {
+    hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
+  });
+};
 
 function RoomCard({ room, onClick }) {
+  let statusClass = '';
+  let statusLabel = '';
+
+  if (room.uiStatus === 'available') {
+    statusClass = ''; 
+    statusLabel = 'Check-in Ready';
+  } else if (room.uiStatus === 'inuse') {
+    statusClass = 'inuse-status';
+    statusLabel = 'In Use';
+  } else {
+    statusClass = 'maintaining-status'; 
+    statusLabel = 'Checked Out';
+  }
+
   return (
-    <div className={"room-card " + room.status} onClick={() => onClick(room)}>
-      <div className="room-thumb" />
+    // Sử dụng class .ls-room-card để giống hệt trang Learning Spaces
+    <div className={`ls-room-card`} onClick={() => onClick(room)}>
+      <div
+        className="room-thumb" 
+        style={{ 
+          backgroundImage: room.img ? `url(${room.img})` : 'none',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }} 
+      />
+      
       <div className="room-info">
-        <div className="room-id">{room.id}</div>
-        <div className="room-status">
-          {room.status === 'available' && <span className="green">Available to Check-In</span>}
-          {room.status === 'inuse' && <span className="teal">In Use</span>}
-          {room.status === 'checkedout' && <span className="muted">User has Checked-out</span>}
+        <div className="room-info-top">
+          <div className="info-left">
+            <div className="room-id">{room.room?.name || `Room #${room.room_id}`}</div>
+          </div>
+          
+          <div className="room-status">
+            <span className={`status-pill ${statusClass}`}>
+              {statusLabel}
+            </span>
+          </div>
+        </div>
+
+        <div className="room-tags" style={{flexDirection: 'column', gap: '4px', alignItems: 'flex-start'}}>
+            <div className="tag" style={{fontSize: '12px', background: '#f9f9f9'}}>
+              📅 {formatDate(room.start_time)}
+            </div>
         </div>
       </div>
     </div>
@@ -29,29 +63,102 @@ function RoomCard({ room, onClick }) {
 }
 
 const BookedRooms = () => {
-  const [rooms] = useState(mockRooms)
-  const [selected, setSelected] = useState(null)
-  const [showQR, setShowQR] = useState(false)
+  const { user, accessToken } = useAuth(); 
+  const [rooms, setRooms] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [showQR, setShowQR] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const fetchBookings = async () => {
+    if (!accessToken) return;
+    try {
+      const res = await axios.get('http://localhost:3069/booking', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+
+      if (res.data && res.data.metaData && res.data.metaData.bookingList) {
+        const allBookings = res.data.metaData.bookingList;
+        
+        const myBookings = allBookings
+          .filter(b => b.booking_user === user?.ID) 
+          .map(b => {
+            let uiStatus = 'available';
+            if (b.checkout_time) {
+                uiStatus = 'checkedout';
+            } else if (b.checkin_time) {
+                uiStatus = 'inuse';
+            }
+            const imgUrl = b.room?.room_image?.[0]?.image_url || null;
+            return { ...b, uiStatus, img: imgUrl };
+          });
+
+        setRooms(myBookings.reverse());
+      }
+    } catch (err) {
+      console.error("Failed to fetch bookings:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings();
+  }, [accessToken, user]);
 
   function handleCardClick(room) {
-    setSelected({ ...room, checkIn: '8:00 6/9/2025', checkOut: '10:00 6/9/2025' })
-    setShowQR(false)
+    setSelected(room);
+    setShowQR(false);
   }
 
   function closePanel() {
-    setSelected(null)
-    setShowQR(false)
+    setSelected(null);
+    setShowQR(false);
   }
 
+  const handleCheckIn = async () => {
+    if (!selected) return;
+    try {
+      await axios.get(`http://localhost:3069/checkin/${selected.ID}`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      alert("Check-in thành công!");
+      fetchBookings(); 
+      closePanel();
+    } catch (error) {
+      alert("Check-in thất bại: " + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleCheckOut = async () => {
+    if (!selected) return;
+    try {
+      await axios.get(`http://localhost:3069/checkout/${selected.ID}`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      alert("Check-out thành công!");
+      fetchBookings(); 
+      closePanel();
+    } catch (error) {
+      alert("Check-out thất bại: " + (error.response?.data?.message || error.message));
+    }
+  };
+
   return (
-    <div className="rooms-page">
+    <div className="rooms-page learning-spaces">
       <main className="rooms-main">
-        <h2 className="page-title">Your Rooms</h2>
-        <div className="rooms-grid">
-          {rooms.map(r => (
-            <RoomCard key={r.id} room={r} onClick={handleCardClick} />
-          ))}
-        </div>
+        <h2 className="page-title">Your Booking History</h2>
+        
+        {loading ? (
+            <p>Loading your bookings...</p>
+        ) : rooms.length === 0 ? (
+            <p>You have no bookings yet.</p>
+        ) : (
+            <div className="rooms-grid">
+            {rooms.map(r => (
+                <RoomCard key={r.ID} room={r} onClick={handleCardClick} />
+            ))}
+            </div>
+        )}
       </main>
 
       {selected && (
@@ -59,58 +166,58 @@ const BookedRooms = () => {
           <div className="room-panel room-panel-vertical" onClick={e => e.stopPropagation()}>
             {!showQR && (
               <div className="rp-vertical">
-                <h3>{selected.id}</h3>
+                <h3>{selected.room?.name || `Room #${selected.room_id}`}</h3>
+                
                 <p className="status-text">
-                  {selected.status === 'available' ? (
-                    <span className="green">Available to Check-In</span>
-                  ) : selected.status === 'inuse' ? (
-                    <span className="teal">In Use</span>
-                  ) : (
-                    <span className="muted">User has Checked-out</span>
-                  )}
+                  {selected.uiStatus === 'available' && <span style={{color:'#1aa84b', fontWeight:'bold'}}>Available to Check-In</span>}
+                  {selected.uiStatus === 'inuse' && <span style={{color:'#e67e22', fontWeight:'bold'}}>In Use</span>}
+                  {selected.uiStatus === 'checkedout' && <span style={{color:'#999', fontWeight:'bold'}}>Finished</span>}
                 </p>
-                <div className="panel-thumb" />
+                
+                <div 
+                  className="panel-thumb" 
+                  style={{ 
+                    backgroundImage: selected.img ? `url(${selected.img})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    height: '180px',
+                    width: '100%'
+                  }}
+                />
 
                 <div className="dates">
-                  <div><strong>Check-in Date:</strong> {selected.checkIn}</div>
-                  <div><strong>Check-out Date:</strong> {selected.checkOut}</div>
+                  {selected.checkin_time && <div><strong>Check-In Date:</strong> <span style={{color: 'green'}}>{formatDate(selected.checkin_time)}</span></div>}
+                  {selected.checkout_time && <div><strong>Check-Out DateOut:</strong> <span style={{color: 'red'}}>{formatDate(selected.checkout_time)}</span></div>}
                 </div>
 
                 <div className="panel-actions-vertical">
-                  <button className="btn btn-green">Check-In</button>
-                  <button className="btn btn-red">Check-Out</button>
-                  <button className="btn btn-dark" onClick={() => setShowQR(true)}>Show QR</button>
+                  {selected.uiStatus === 'available' && (
+                      <button className="btn btn-green" onClick={handleCheckIn}>Check-In Now</button>
+                  )}
+                  
+                  {selected.uiStatus === 'inuse' && (
+                      <button className="btn btn-red" onClick={handleCheckOut}>Check-Out Now</button>
+                  )}
+
+                  <button className="btn btn-dark" onClick={() => setShowQR(true)}>Show QR Code</button>
                 </div>
               </div>
             )}
 
             {showQR && (
               <div className="rp-vertical">
-                <h3>{selected.id}</h3>
-                <p className="status-text">
-                  {selected.status === 'available' ? (
-                    <span className="green">Available to Check-In</span>
-                  ) : selected.status === 'inuse' ? (
-                    <span className="teal">In Use</span>
-                  ) : (
-                    <span className="muted">User has Checked-out</span>
-                  )}
-                </p>
-                <div className="panel-thumb" />
-                <div className="dates">
-                  <div><strong>Check-in Date:</strong> {selected.checkIn}</div>
-                  <div><strong>Check-out Date:</strong> {selected.checkOut}</div>
-                </div>
-
+                <h3 style={{textAlign:'center'}}>{selected.room?.name}</h3>
+                <p className="status-text" style={{textAlign:'center'}}>Scan at the door</p>
+                
                 <div className="qr-area">
                   <div className="qr-center">
                     <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(selected.id + '|' + selected.checkIn)}`}
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(selected.ID)}`}
                       alt="qr"
                     />
                   </div>
                   <div style={{ marginTop: 12 }}>
-                    <button className="btn btn-dark" onClick={() => setShowQR(false)}>Go Back</button>
+                    <button className="btn btn-dark" onClick={() => setShowQR(false)}>Back</button>
                   </div>
                 </div>
               </div>
@@ -122,4 +229,4 @@ const BookedRooms = () => {
   )
 }
 
-export default BookedRooms
+export default BookedRooms;
