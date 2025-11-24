@@ -71,9 +71,19 @@ export default function TimeUsageStatistic() {
       console.log('Báo cáo sử dụng đã tạo:', report);
       setReportId(report.ID);
 
-      // Backend trả về tổng số booking_count cho cả năm
-      // Cần phân bổ theo tháng dựa trên tỷ lệ thực tế
-      const monthlyData = distributeUsageByMonth(report.booking_count);
+      // Use real monthly data from backend
+      let monthlyData = report.monthly_booking_counts || Array(12).fill(0);
+      
+      // Ensure it's an array of numbers
+      if (Array.isArray(monthlyData)) {
+        monthlyData = monthlyData.map(count => Number(count) || 0);
+      } else {
+        monthlyData = Array(12).fill(0);
+      }
+      
+      console.log('📊 Monthly data from backend:', monthlyData);
+      console.log('📊 Type of monthly data:', typeof monthlyData, Array.isArray(monthlyData));
+      console.log('📊 First value type:', typeof monthlyData[0], monthlyData[0]);
       processUsageData(monthlyData);
       
     } catch (err) {
@@ -95,14 +105,6 @@ export default function TimeUsageStatistic() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Hàm phân bổ tổng booking count theo 12 tháng
-  const distributeUsageByMonth = (totalBookings) => {
-    // Pattern: tháng học (1-5, 9-12) cao hơn, tháng hè (6-8) thấp hơn
-    const pattern = [1.0, 1.1, 1.2, 1.1, 1.0, 0.4, 0.3, 0.5, 1.0, 1.1, 1.0, 0.8];
-    const sum = pattern.reduce((a, b) => a + b, 0);
-    return pattern.map(p => Math.round(totalBookings * p / sum));
   };
 
   const processUsageData = (monthlyData) => {
@@ -219,7 +221,7 @@ export default function TimeUsageStatistic() {
         <div className="header-controls">
           {reportId && (
             <span className="report-info" title={`Report ID: ${reportId}`}>
-              📄 Báo cáo #{reportId}
+              📄 Report #{reportId}
             </span>
           )}
           <div className="year-selector">

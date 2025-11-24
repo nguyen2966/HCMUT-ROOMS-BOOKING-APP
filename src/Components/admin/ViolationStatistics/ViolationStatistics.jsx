@@ -204,7 +204,7 @@ export default function ViolationStatistics() {
         <div className="header-controls">
           {reportId && (
             <span className="report-info" title={`Report ID: ${reportId}`}>
-              📄 Báo cáo #{reportId}
+              📄 Report #{reportId}
             </span>
           )}
           <div className="year-selector">
