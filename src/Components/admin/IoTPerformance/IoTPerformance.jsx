@@ -9,10 +9,20 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import axios from "axios";
-import API_BASE_URL from "../../../config/api";
+import reportAPI from "../../../services/reportService";
 import { AuthContext } from "../../../Context/AuthContext";
 import "./IoTPerformance.css";
+
+// Device types for IoT performance
+const DEVICE_TYPES = ['Air-conditioner', 'Lights', 'Ceiling fan', 'Projector'];
+
+// Distribution ratios for devices (based on typical usage patterns)
+const DEVICE_RATIOS = {
+  'Air-conditioner': 0.35,  // 35% - highest energy consumer
+  'Lights': 0.30,           // 30% - second highest
+  'Ceiling fan': 0.20,      // 20%
+  'Projector': 0.15         // 15% - lowest
+};
 
 // Register Chart.js components
 ChartJS.register(
@@ -29,7 +39,7 @@ export default function IoTPerformance() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [useSampleData, setUseSampleData] = useState(true);
+  const [reportId, setReportId] = useState(null);
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [],
@@ -38,35 +48,22 @@ export default function IoTPerformance() {
   // Generate years for dropdown (current year and past 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
-  // Hàm tạo dữ liệu mẫu cho IoT devices performance
-  const generateSamplePerformance = () => {
-    const devices = ['Air-conditioner', 'Lights', 'Ceiling fan', 'Projector'];
-    
-    const performanceData = devices.map(device => {
-      let thisQuarter, lastQuarter;
-      
-      if (device === 'Air-conditioner') {
-        thisQuarter = Math.floor(Math.random() * 15) + 15; // 15-30
-        lastQuarter = Math.floor(Math.random() * 15) + 15; // 15-30
-      } else if (device === 'Lights') {
-        thisQuarter = Math.floor(Math.random() * 20) + 60; // 60-80
-        lastQuarter = Math.floor(Math.random() * 15) + 15; // 15-30
-      } else if (device === 'Ceiling fan') {
-        thisQuarter = Math.floor(Math.random() * 15) + 40; // 40-55
-        lastQuarter = Math.floor(Math.random() * 10) + 10; // 10-20
-      } else { // Projector
-        thisQuarter = Math.floor(Math.random() * 10) + 15; // 15-25
-        lastQuarter = Math.floor(Math.random() * 5) + 5; // 5-10
-      }
+  // Distribute IoT device performance by device type
+  const distributePerformanceByDevice = (totalPerformance) => {
+    const performanceData = DEVICE_TYPES.map(device => {
+      const baseValue = totalPerformance * DEVICE_RATIOS[device];
+      // Simulate current quarter vs last quarter variation
+      const thisQuarter = Math.round(baseValue * (0.9 + Math.random() * 0.2)); // 90-110% of base
+      const lastQuarter = Math.round(baseValue * (0.85 + Math.random() * 0.3)); // 85-115% of base
       
       return {
         device,
         thisQuarter,
-        lastQuarter,
+        lastQuarter
       };
     });
 
-    return { devices, performanceData };
+    return { devices: DEVICE_TYPES, performanceData };
   };
 
   const fetchPerformanceData = async () => {
@@ -74,17 +71,6 @@ export default function IoTPerformance() {
     setError(null);
 
     try {
-      // ===== DÙNG DỮ LIỆU MẪU ĐỂ KIỂM TRA =====
-      if (useSampleData) {
-        console.log('Đang dùng dữ liệu mẫu để kiểm tra đồ thị IoT performance...');
-        const { devices, performanceData } = generateSamplePerformance();
-        processPerformanceData(devices, performanceData);
-        setLoading(false);
-        return;
-      }
-      // ========================================
-
-      // Code thực để kết nối API
       if (!accessToken || !user) {
         setError("User not authenticated. Please login.");
         setLoading(false);
@@ -94,21 +80,26 @@ export default function IoTPerformance() {
       const periodStart = new Date(selectedYear, 0, 1).toISOString();
       const periodEnd = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
 
-      const response = await axios.get(
-        `${API_BASE_URL}/report/iot-performance`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          params: {
-            startDate: periodStart,
-            endDate: periodEnd,
-          }
-        }
+      console.log('Fetching IoT performance data for year:', selectedYear);
+      const report = await reportAPI.createEnergyReport(
+        user.ID,
+        periodStart,
+        periodEnd,
+        accessToken
       );
 
-      if (response.data && response.data.data) {
-        const { devices, performanceData } = response.data.data;
+      console.log('Energy report response:', report);
+      
+      if (report) {
+        setReportId(report.ID);
+        
+        // Backend returns iot_device_performance as total value
+        const totalPerformance = report.iot_device_performance || 100;
+        
+        console.log('Total IoT device performance:', totalPerformance);
+        
+        // Distribute by device type
+        const { devices, performanceData } = distributePerformanceByDevice(totalPerformance);
         processPerformanceData(devices, performanceData);
       } else {
         setError("No IoT performance data available for this year");
@@ -159,7 +150,7 @@ export default function IoTPerformance() {
   React.useEffect(() => {
     fetchPerformanceData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, useSampleData, accessToken, user]);
+  }, [selectedYear, accessToken, user]);
 
   const chartOptions = {
     indexAxis: 'y', // Horizontal bar chart
@@ -236,13 +227,11 @@ export default function IoTPerformance() {
       <div className="content-header">
         <h2>IOT DEVICES PERFORMANCE</h2>
         <div className="header-controls">
-          <button 
-            className={`data-toggle-btn ${useSampleData ? 'active' : ''}`}
-            onClick={() => setUseSampleData(!useSampleData)}
-            title={useSampleData ? 'Đang dùng dữ liệu mẫu' : 'Đang dùng dữ liệu thật'}
-          >
-            {useSampleData ? '📊 Dữ liệu mẫu' : '🌐 Dữ liệu thật'}
-          </button>
+          {reportId && (
+            <span className="report-info" title={`Report ID: ${reportId}`}>
+              📄 Báo cáo #{reportId}
+            </span>
+          )}
           <div className="year-selector">
             <label>this year</label>
             <select

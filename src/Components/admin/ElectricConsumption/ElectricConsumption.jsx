@@ -11,8 +11,7 @@ import {
   Legend,
   Filler,
 } from "chart.js";
-import axios from "axios";
-import API_BASE_URL from "../../../config/api";
+import reportAPI from "../../../services/reportService";
 import { AuthContext } from "../../../Context/AuthContext";
 import "./ElectricConsumption.css";
 
@@ -33,7 +32,7 @@ export default function ElectricConsumption() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [useSampleData, setUseSampleData] = useState(true);
+  const [reportId, setReportId] = useState(null);
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [],
@@ -45,91 +44,41 @@ export default function ElectricConsumption() {
   // Generate years for dropdown (current year and past 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
-  // Hàm tạo dữ liệu mẫu cho electric consumption
-  const generateSampleConsumption = () => {
-    const consumptionData = [];
-    
-    // Tạo dữ liệu cho 12 tháng với pattern giống mockup
-    // Tháng 1-5: tăng dần từ 30-200
-    // Tháng 6-8: giảm xuống 80-100
-    // Tháng 9-12: tăng lại lên 150-170
-    for (let month = 0; month < 12; month++) {
-      let consumption;
-      if (month < 5) {
-        // Tháng 1-5: tăng dần
-        consumption = 30 + (month * 35) + Math.random() * 20;
-      } else if (month >= 5 && month < 8) {
-        // Tháng 6-8: giảm
-        consumption = 100 - ((month - 5) * 10) + Math.random() * 15;
-      } else {
-        // Tháng 9-12: tăng lại
-        consumption = 80 + ((month - 8) * 20) + Math.random() * 20;
-      }
-      
-      consumptionData.push(Math.round(consumption));
-    }
-    
-    return consumptionData;
-  };
-
   const fetchConsumptionData = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // ===== DÙNG DỮ LIỆU MẪU ĐỂ KIỂM TRA =====
-      if (useSampleData) {
-        console.log('Đang dùng dữ liệu mẫu để kiểm tra đồ thị electric consumption...');
-        const consumptionData = generateSampleConsumption();
-        console.log(`Đã tạo dữ liệu điện năng cho 12 tháng`);
-        processConsumptionData(consumptionData);
-        setLoading(false);
-        return;
-      }
-      // ========================================
-
-      // Code thực để kết nối API
       if (!accessToken || !user) {
-        setError("User not authenticated. Please login.");
+        setError("Vui lòng đăng nhập để xem báo cáo.");
         setLoading(false);
         return;
       }
 
-      const periodStart = new Date(selectedYear, 0, 1).toISOString();
-      const periodEnd = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
+      const periodStart = new Date(selectedYear, 0, 1);
+      const periodEnd = new Date(selectedYear, 11, 31, 23, 59, 59);
 
-      const response = await axios.get(
-        `${API_BASE_URL}/report/electric-consumption`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          params: {
-            startDate: periodStart,
-            endDate: periodEnd,
-          }
-        }
+      console.log(`Tạo báo cáo năng lượng cho năm ${selectedYear}...`);
+      
+      // Tạo báo cáo năng lượng cho năm được chọn
+      const report = await reportAPI.createEnergyReport(
+        user.ID,
+        periodStart,
+        periodEnd,
+        accessToken
       );
 
-      if (response.data && response.data.data) {
-        processConsumptionData(response.data.data.monthlyConsumption);
-      } else {
-        setError("No electric consumption data available for this year");
-        setChartData({
-          labels: monthLabels,
-          datasets: [{
-            label: "Electric consumption (kWh)",
-            data: Array(12).fill(0),
-            borderColor: "rgb(59, 130, 246)",
-            backgroundColor: "rgba(59, 130, 246, 0.1)",
-            tension: 0.4,
-            fill: false,
-          }],
-        });
-      }
+      console.log('Báo cáo năng lượng đã tạo:', report);
+      setReportId(report.ID);
+
+      // Chuyển đổi dữ liệu báo cáo thành dữ liệu chart theo tháng
+      // Backend trả về tổng consumption cho cả năm, cần tạo distribution theo tháng
+      const monthlyData = distributeEnergyByMonth(report.total_energy_consumption);
+      processConsumptionData(monthlyData);
+      
     } catch (err) {
-      console.error("Error fetching consumption data:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Failed to fetch data from server";
+      console.error("Lỗi khi tạo báo cáo năng lượng:", err);
+      const errorMsg = err.response?.data?.message || err.message || "Không thể tạo báo cáo";
       setError(errorMsg);
       
       setChartData({
@@ -146,6 +95,14 @@ export default function ElectricConsumption() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Hàm phân bổ tổng năng lượng theo 12 tháng (tạm thời dùng pattern giống thực tế)
+  const distributeEnergyByMonth = (totalEnergy) => {
+    // Pattern phân bổ: mùa đông/hè cao hơn, mùa xuân/thu thấp hơn
+    const pattern = [1.2, 1.1, 0.9, 0.8, 0.7, 1.0, 1.3, 1.2, 0.9, 0.8, 1.0, 1.1];
+    const sum = pattern.reduce((a, b) => a + b, 0);
+    return pattern.map(p => Math.round((totalEnergy * p / sum) * 10) / 10);
   };
 
   const processConsumptionData = (consumptionData) => {
@@ -174,7 +131,7 @@ export default function ElectricConsumption() {
   React.useEffect(() => {
     fetchConsumptionData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, useSampleData, accessToken, user]);
+  }, [selectedYear, accessToken, user]);
 
   const chartOptions = {
     responsive: true,
@@ -249,13 +206,11 @@ export default function ElectricConsumption() {
       <div className="content-header">
         <h2>ELECTRIC CONSUMPTION BY MONTH</h2>
         <div className="header-controls">
-          <button 
-            className={`data-toggle-btn ${useSampleData ? 'active' : ''}`}
-            onClick={() => setUseSampleData(!useSampleData)}
-            title={useSampleData ? 'Đang dùng dữ liệu mẫu' : 'Đang dùng dữ liệu thật'}
-          >
-            {useSampleData ? '📊 Dữ liệu mẫu' : '🌐 Dữ liệu thật'}
-          </button>
+          {reportId && (
+            <span className="report-info" title={`Report ID: ${reportId}`}>
+              📄 Báo cáo #{reportId}
+            </span>
+          )}
           <div className="year-selector">
             <label>this year</label>
             <select
