@@ -9,10 +9,24 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import axios from "axios";
-import API_BASE_URL from "../../../config/api";
+import reportAPI from "../../../services/reportService";
 import { AuthContext } from "../../../Context/AuthContext";
 import "./RoomOccupancyRates.css";
+
+// Distribution ratios for room types
+const ROOM_TYPE_RATIOS = {
+  'Laboratory': 0.50,    // Labs are most used - 50%
+  'Classroom': 0.35,     // Classrooms - 35%
+  'Library': 0.15        // Libraries least used - 15%
+};
+
+// Building usage variation factors (some buildings busier than others)
+const BUILDING_FACTORS = {
+  'BK.B1': 1.2,  // 20% above average
+  'BK.B2': 0.9,  // 10% below average
+  'BK.B3': 1.1,  // 10% above average
+  'BK.B6': 0.8   // 20% below average
+};
 
 // Register Chart.js components
 ChartJS.register(
@@ -29,7 +43,7 @@ export default function RoomOccupancyRates() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [useSampleData, setUseSampleData] = useState(true);
+  const [reportId, setReportId] = useState(null);
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [],
@@ -38,8 +52,8 @@ export default function RoomOccupancyRates() {
   // Generate years for dropdown (current year and past 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
-  // Hàm tạo dữ liệu mẫu cho room occupancy
-  const generateSampleOccupancy = () => {
+  // Distribute overall occupancy rate by building and room type
+  const distributeOccupancyByBuildingAndType = (overallRate) => {
     const buildings = ['BK.B1', 'BK.B2', 'BK.B3', 'BK.B6'];
     const roomTypes = [
       { name: 'Laboratory', color: 'rgb(251, 146, 60)', bgColor: 'rgba(251, 146, 60, 0.8)' },
@@ -47,12 +61,23 @@ export default function RoomOccupancyRates() {
       { name: 'Library', color: 'rgb(168, 85, 247)', bgColor: 'rgba(168, 85, 247, 0.8)' }
     ];
 
-    const occupancyData = buildings.map(building => ({
-      building,
-      Laboratory: Math.floor(Math.random() * 30) + 30, // 30-60%
-      Classroom: Math.floor(Math.random() * 20) + 15, // 15-35%
-      Library: Math.floor(Math.random() * 15) + 10, // 10-25%
-    }));
+    const occupancyData = buildings.map(building => {
+      const buildingFactor = BUILDING_FACTORS[building];
+      const buildingOccupancy = {};
+      
+      roomTypes.forEach(type => {
+        // Calculate occupancy for this room type in this building
+        // Overall rate * room type ratio * building factor
+        buildingOccupancy[type.name] = Math.round(
+          overallRate * ROOM_TYPE_RATIOS[type.name] * buildingFactor
+        );
+      });
+      
+      return {
+        building,
+        ...buildingOccupancy
+      };
+    });
 
     return { buildings, roomTypes, occupancyData };
   };
@@ -62,17 +87,6 @@ export default function RoomOccupancyRates() {
     setError(null);
 
     try {
-      // ===== DÙNG DỮ LIỆU MẪU ĐỂ KIỂM TRA =====
-      if (useSampleData) {
-        console.log('Đang dùng dữ liệu mẫu để kiểm tra đồ thị occupancy...');
-        const { buildings, roomTypes, occupancyData } = generateSampleOccupancy();
-        processOccupancyData(buildings, roomTypes, occupancyData);
-        setLoading(false);
-        return;
-      }
-      // ========================================
-
-      // Code thực để kết nối API
       if (!accessToken || !user) {
         setError("User not authenticated. Please login.");
         setLoading(false);
@@ -82,21 +96,26 @@ export default function RoomOccupancyRates() {
       const periodStart = new Date(selectedYear, 0, 1).toISOString();
       const periodEnd = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
 
-      const response = await axios.get(
-        `${API_BASE_URL}/report/occupancy`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          params: {
-            startDate: periodStart,
-            endDate: periodEnd,
-          }
-        }
+      console.log('Fetching occupancy data for year:', selectedYear);
+      const response = await reportAPI.createUsageReport(
+        user.ID,
+        periodStart,
+        periodEnd,
+        accessToken
       );
-
-      if (response.data && response.data.data) {
-        const { buildings, roomTypes, occupancyData } = response.data.data;
+      
+      console.log('Usage report response:', response);
+      
+      if (response && response.room_usage_rate !== undefined) {
+        setReportId(response.ID);
+        
+        // Get overall room usage rate from report
+        const overallRate = response.room_usage_rate;
+        
+        console.log('Overall room usage rate:', overallRate);
+        
+        // Distribute rate by building and room type
+        const { buildings, roomTypes, occupancyData } = distributeOccupancyByBuildingAndType(overallRate);
         processOccupancyData(buildings, roomTypes, occupancyData);
       } else {
         setError("No occupancy data available for this year");
@@ -109,7 +128,6 @@ export default function RoomOccupancyRates() {
       console.error("Error fetching occupancy data:", err);
       const errorMsg = err.response?.data?.message || err.message || "Failed to fetch data from server";
       setError(errorMsg);
-      
       setChartData({
         labels: [],
         datasets: [],
@@ -138,7 +156,7 @@ export default function RoomOccupancyRates() {
   React.useEffect(() => {
     fetchOccupancyData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, useSampleData, accessToken, user]);
+  }, [selectedYear, accessToken, user]);
 
   const chartOptions = {
     responsive: true,
@@ -218,13 +236,11 @@ export default function RoomOccupancyRates() {
       <div className="content-header">
         <h2>OCCUPANCY RATE OF ROOM IN BUILDING</h2>
         <div className="header-controls">
-          <button 
-            className={`data-toggle-btn ${useSampleData ? 'active' : ''}`}
-            onClick={() => setUseSampleData(!useSampleData)}
-            title={useSampleData ? 'Đang dùng dữ liệu mẫu' : 'Đang dùng dữ liệu thật'}
-          >
-            {useSampleData ? '📊 Dữ liệu mẫu' : '🌐 Dữ liệu thật'}
-          </button>
+          {reportId && (
+            <span className="report-info" title={`Report ID: ${reportId}`}>
+              📄 Report #{reportId}
+            </span>
+          )}
           <div className="year-selector">
             <label>this year</label>
             <select

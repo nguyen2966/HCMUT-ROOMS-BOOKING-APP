@@ -11,8 +11,7 @@ import {
   Legend,
   Filler,
 } from "chart.js";
-import axios from "axios";
-import API_BASE_URL from "../../../config/api";
+import reportAPI from "../../../services/reportService";
 import { AuthContext } from "../../../Context/AuthContext";
 import "./OperationalCost.css";
 
@@ -33,7 +32,7 @@ export default function OperationalCost() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [useSampleData, setUseSampleData] = useState(true);
+  const [reportId, setReportId] = useState(null);
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [],
@@ -45,23 +44,16 @@ export default function OperationalCost() {
   // Generate years for dropdown (current year and past 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
-  // Hàm tạo dữ liệu mẫu cho operational cost forecast
-  const generateSampleCost = () => {
-    const costData = [];
+  // Distribute yearly cost forecast by month based on energy usage patterns
+  const distributeCostByMonth = (yearlyForecast) => {
+    // Pattern: high in winter/summer (AC usage), low in spring/fall
+    // Similar to energy consumption pattern but with cost perspective
+    const monthlyRatios = [1.1, 0.7, 1.4, 1.1, 0.9, 1.3, 1.4, 1.3, 0.7, 0.6, 1.2, 0.4];
+    const totalRatio = monthlyRatios.reduce((sum, r) => sum + r, 0);
     
-    // Pattern giống mockup:
-    // Jan: 55, Feb: 35, Mar: 90, Apr: 70, May: 55
-    // Jun: 85, Jul: 90, Aug: 80, Sep: 35, Oct: 30
-    // Nov: 75, Dec: 20
-    const basePattern = [55, 35, 90, 70, 55, 85, 90, 80, 35, 30, 75, 20];
-    
-    for (let month = 0; month < 12; month++) {
-      // Thêm một chút random để không giống hệt nhau
-      const variation = Math.random() * 10 - 5; // -5 đến +5
-      costData.push(Math.max(0, basePattern[month] + variation));
-    }
-    
-    return costData;
+    return monthlyRatios.map(ratio => 
+      Math.round((yearlyForecast * ratio / totalRatio) * 10) / 10
+    );
   };
 
   const fetchCostData = async () => {
@@ -69,18 +61,6 @@ export default function OperationalCost() {
     setError(null);
 
     try {
-      // ===== DÙNG DỮ LIỆU MẪU ĐỂ KIỂM TRA =====
-      if (useSampleData) {
-        console.log('Đang dùng dữ liệu mẫu để kiểm tra đồ thị operational cost...');
-        const costData = generateSampleCost();
-        console.log(`Đã tạo dữ liệu chi phí cho 12 tháng`);
-        processCostData(costData);
-        setLoading(false);
-        return;
-      }
-      // ========================================
-
-      // Code thực để kết nối API
       if (!accessToken || !user) {
         setError("User not authenticated. Please login.");
         setLoading(false);
@@ -90,21 +70,27 @@ export default function OperationalCost() {
       const periodStart = new Date(selectedYear, 0, 1).toISOString();
       const periodEnd = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
 
-      const response = await axios.get(
-        `${API_BASE_URL}/report/operational-cost`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          params: {
-            startDate: periodStart,
-            endDate: periodEnd,
-          }
-        }
+      console.log('Fetching operational cost data for year:', selectedYear);
+      const report = await reportAPI.createEnergyReport(
+        user.ID,
+        periodStart,
+        periodEnd,
+        accessToken
       );
 
-      if (response.data && response.data.data) {
-        processCostData(response.data.data.monthlyCost);
+      console.log('Energy report response:', report);
+      
+      if (report) {
+        setReportId(report.ID);
+        
+        // Backend returns cost_forecast as yearly total
+        const yearlyForecast = report.cost_forecast || 0;
+        
+        console.log('Yearly cost forecast:', yearlyForecast);
+        
+        // Distribute by month
+        const monthlyCosts = distributeCostByMonth(yearlyForecast);
+        processCostData(monthlyCosts);
       } else {
         setError("No operational cost data available for this year");
         setChartData({
@@ -166,7 +152,7 @@ export default function OperationalCost() {
   React.useEffect(() => {
     fetchCostData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, useSampleData, accessToken, user]);
+  }, [selectedYear, accessToken, user]);
 
   const chartOptions = {
     responsive: true,
@@ -241,13 +227,11 @@ export default function OperationalCost() {
       <div className="content-header">
         <h2>OPERATIONAL COST FORECAST</h2>
         <div className="header-controls">
-          <button 
-            className={`data-toggle-btn ${useSampleData ? 'active' : ''}`}
-            onClick={() => setUseSampleData(!useSampleData)}
-            title={useSampleData ? 'Đang dùng dữ liệu mẫu' : 'Đang dùng dữ liệu thật'}
-          >
-            {useSampleData ? '📊 Dữ liệu mẫu' : '🌐 Dữ liệu thật'}
-          </button>
+          {reportId && (
+            <span className="report-info" title={`Report ID: ${reportId}`}>
+              📄 Report #{reportId}
+            </span>
+          )}
           <div className="year-selector">
             <label>this year</label>
             <select

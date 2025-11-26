@@ -11,8 +11,7 @@ import {
   Legend,
   Filler,
 } from "chart.js";
-import axios from "axios";
-import API_BASE_URL from "../../../config/api";
+import reportAPI from "../../../services/reportService";
 import { AuthContext } from "../../../Context/AuthContext";
 import "./TimeUsageStatistic.css";
 
@@ -33,7 +32,7 @@ export default function TimeUsageStatistic() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [useSampleData, setUseSampleData] = useState(true); // Toggle giữa data mẫu và data thật
+  const [reportId, setReportId] = useState(null);
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [],
@@ -45,98 +44,53 @@ export default function TimeUsageStatistic() {
   // Generate years for dropdown (current year and past 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
-  // Hàm tạo dữ liệu mẫu cho bookings theo tháng
-  const generateSampleBookings = () => {
-    const bookings = [];
-    
-    // Tạo bookings cho từng tháng trong năm
-    for (let month = 0; month < 12; month++) {
-      // Số lượng bookings mỗi tháng (50-250 lượt)
-      const bookingsPerMonth = Math.floor(Math.random() * 200) + 50;
-      
-      for (let i = 0; i < bookingsPerMonth; i++) {
-        // Ngày ngẫu nhiên trong tháng
-        const day = Math.floor(Math.random() * 28) + 1;
-        const hour = Math.floor(Math.random() * 24);
-        
-        const bookingDate = new Date(selectedYear, month, day, hour, 0, 0);
-        
-        bookings.push({
-          id: `sample-${month}-${day}-${i}`,
-          start_time: bookingDate.toISOString(),
-          end_time: new Date(bookingDate.getTime() + 2 * 60 * 60 * 1000).toISOString(),
-          status: 'APPROVED',
-        });
-      }
-    }
-    
-    return bookings;
-  };
-
   const fetchUsageData = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // ===== DÙNG DỮ LIỆU MẪU ĐỂ KIỂM TRA =====
-      if (useSampleData) {
-        console.log('Đang dùng dữ liệu mẫu để kiểm tra đồ thị...');
-        const sampleBookings = generateSampleBookings();
-        console.log(`Đã tạo ${sampleBookings.length} bookings mẫu`);
-        processBookingsData(sampleBookings, selectedYear);
-        setLoading(false);
-        return;
-      }
-      // ========================================
-
-      // Code thực để kết nối API (sẽ dùng khi backend đã chạy)
       if (!accessToken || !user) {
-        setError("User not authenticated. Please login.");
+        setError("Vui lòng đăng nhập để xem báo cáo.");
         setLoading(false);
         return;
       }
 
-      // Fetch bookings data from backend
-      const periodStart = new Date(selectedYear, 0, 1).toISOString();
-      const periodEnd = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
+      const periodStart = new Date(selectedYear, 0, 1);
+      const periodEnd = new Date(selectedYear, 11, 31, 23, 59, 59);
 
-      // Try to get bookings data
-      const response = await axios.get(
-        `${API_BASE_URL}/booking`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          params: {
-            startDate: periodStart,
-            endDate: periodEnd,
-          }
-        }
+      console.log(`Tạo báo cáo sử dụng cho năm ${selectedYear}...`);
+      
+      // Tạo báo cáo sử dụng cho năm được chọn
+      const report = await reportAPI.createUsageReport(
+        user.ID,
+        periodStart,
+        periodEnd,
+        accessToken
       );
 
-      if (response.data && response.data.data) {
-        // Process bookings to calculate monthly usage
-        processBookingsData(response.data.data, selectedYear);
+      console.log('Báo cáo sử dụng đã tạo:', report);
+      setReportId(report.ID);
+
+      // Use real monthly data from backend
+      let monthlyData = report.monthly_booking_counts || Array(12).fill(0);
+      
+      // Ensure it's an array of numbers
+      if (Array.isArray(monthlyData)) {
+        monthlyData = monthlyData.map(count => Number(count) || 0);
       } else {
-        setError("No booking data available for this year");
-        setChartData({
-          labels: monthLabels,
-          datasets: [{
-            label: "Usage Count",
-            data: Array(12).fill(0),
-            borderColor: "rgb(75, 132, 192)",
-            backgroundColor: "rgba(75, 132, 192, 0.5)",
-            tension: 0.3,
-            fill: true,
-          }],
-        });
+        monthlyData = Array(12).fill(0);
       }
+      
+      console.log('📊 Monthly data from backend:', monthlyData);
+      console.log('📊 Type of monthly data:', typeof monthlyData, Array.isArray(monthlyData));
+      console.log('📊 First value type:', typeof monthlyData[0], monthlyData[0]);
+      processUsageData(monthlyData);
+      
     } catch (err) {
-      console.error("Error fetching usage data:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Failed to fetch data from server";
+      console.error("Lỗi khi tạo báo cáo sử dụng:", err);
+      const errorMsg = err.response?.data?.message || err.message || "Không thể tạo báo cáo";
       setError(errorMsg);
       
-      // Show empty chart on error
       setChartData({
         labels: monthLabels,
         datasets: [{
@@ -153,34 +107,13 @@ export default function TimeUsageStatistic() {
     }
   };
 
-  const processBookingsData = (bookings, year) => {
-    // Initialize array with 0 for all 12 months
-    const monthlyTurnOfUse = Array(12).fill(0);
-
-    // Process each booking - count number of bookings per month
-    bookings.forEach((booking) => {
-      try {
-        const startTime = new Date(booking.start_time);
-        
-        // Check if booking is in the selected year
-        if (startTime.getFullYear() !== year) {
-          return;
-        }
-
-        // Get the month (0-11)
-        const month = startTime.getMonth();
-        monthlyTurnOfUse[month] += 1;
-      } catch (err) {
-        console.warn("Error processing booking:", booking, err);
-      }
-    });
-
+  const processUsageData = (monthlyData) => {
     setChartData({
       labels: monthLabels,
       datasets: [
         {
           label: "Usage Count",
-          data: monthlyTurnOfUse,
+          data: monthlyData,
           borderColor: "rgb(75, 132, 192)",
           backgroundColor: "rgba(75, 132, 192, 0.5)",
           tension: 0.3,
@@ -199,7 +132,7 @@ export default function TimeUsageStatistic() {
   React.useEffect(() => {
     fetchUsageData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, useSampleData, accessToken, user]);
+  }, [selectedYear, accessToken, user]);
 
   const chartOptions = {
     responsive: true,
@@ -286,13 +219,11 @@ export default function TimeUsageStatistic() {
       <div className="content-header">
         <h2>USAGE STATISTIC</h2>
         <div className="header-controls">
-          <button 
-            className={`data-toggle-btn ${useSampleData ? 'active' : ''}`}
-            onClick={() => setUseSampleData(!useSampleData)}
-            title={useSampleData ? 'Đang dùng dữ liệu mẫu' : 'Đang dùng dữ liệu thật'}
-          >
-            {useSampleData ? '📊 Dữ liệu mẫu' : '🌐 Dữ liệu thật'}
-          </button>
+          {reportId && (
+            <span className="report-info" title={`Report ID: ${reportId}`}>
+              📄 Report #{reportId}
+            </span>
+          )}
           <div className="year-selector">
             <label>this year</label>
             <select

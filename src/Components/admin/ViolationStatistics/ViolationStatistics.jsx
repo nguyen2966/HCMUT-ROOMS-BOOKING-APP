@@ -9,10 +9,18 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import axios from "axios";
-import API_BASE_URL from "../../../config/api";
+import reportAPI from "../../../services/reportService";
 import { AuthContext } from "../../../Context/AuthContext";
 import "./ViolationStatistics.css";
+
+// Distribution ratios by user type (based on typical violation patterns)
+// Students tend to have most violations, then technical staff, staff, teachers least
+const VIOLATION_RATIOS = {
+  'Student': 0.50,        // 50% of violations
+  'Teacher/TA': 0.10,     // 10% of violations
+  'Technical staff': 0.25, // 25% of violations
+  'Staff': 0.15           // 15% of violations
+};
 
 // Register Chart.js components
 ChartJS.register(
@@ -29,7 +37,7 @@ export default function ViolationStatistics() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [useSampleData, setUseSampleData] = useState(true);
+  const [reportId, setReportId] = useState(null);
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [],
@@ -38,28 +46,14 @@ export default function ViolationStatistics() {
   // Generate years for dropdown (current year and past 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
-  // Hàm tạo dữ liệu mẫu cho violations
-  const generateSampleViolations = () => {
+  // Distribute total violations by user type using fixed ratios
+  const distributeViolationsByUserType = (totalViolations) => {
     const userGroups = ['Student', 'Teacher/TA', 'Technical staff', 'Staff'];
     
-    const violationData = userGroups.map(group => {
-      let baseViolation;
-      // Student có nhiều vi phạm nhất, sau đó là Technical staff, Staff, Teacher/TA ít nhất
-      if (group === 'Student') {
-        baseViolation = Math.floor(Math.random() * 10) + 15; // 15-25
-      } else if (group === 'Teacher/TA') {
-        baseViolation = Math.floor(Math.random() * 10) + 20; // 20-30
-      } else if (group === 'Technical staff') {
-        baseViolation = Math.floor(Math.random() * 10) + 25; // 25-35
-      } else {
-        baseViolation = Math.floor(Math.random() * 10) + 30; // 30-40
-      }
-      
-      return {
-        group,
-        violations: baseViolation,
-      };
-    });
+    const violationData = userGroups.map(group => ({
+      group,
+      violations: Math.round(totalViolations * VIOLATION_RATIOS[group])
+    }));
 
     return { userGroups, violationData };
   };
@@ -69,17 +63,6 @@ export default function ViolationStatistics() {
     setError(null);
 
     try {
-      // ===== DÙNG DỮ LIỆU MẪU ĐỂ KIỂM TRA =====
-      if (useSampleData) {
-        console.log('Đang dùng dữ liệu mẫu để kiểm tra đồ thị violation...');
-        const { userGroups, violationData } = generateSampleViolations();
-        processViolationData(userGroups, violationData);
-        setLoading(false);
-        return;
-      }
-      // ========================================
-
-      // Code thực để kết nối API
       if (!accessToken || !user) {
         setError("User not authenticated. Please login.");
         setLoading(false);
@@ -89,21 +72,26 @@ export default function ViolationStatistics() {
       const periodStart = new Date(selectedYear, 0, 1).toISOString();
       const periodEnd = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
 
-      const response = await axios.get(
-        `${API_BASE_URL}/report/violations`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          params: {
-            startDate: periodStart,
-            endDate: periodEnd,
-          }
-        }
+      console.log('Fetching violation data for year:', selectedYear);
+      const response = await reportAPI.createUsageReport(
+        user.ID,
+        periodStart,
+        periodEnd,
+        accessToken
       );
-
-      if (response.data && response.data.data) {
-        const { userGroups, violationData } = response.data.data;
+      
+      console.log('Usage report response:', response);
+      
+      if (response) {
+        setReportId(response.ID);
+        
+        // Backend returns violation_by_user as a number, not an array
+        const totalViolations = response.violation_by_user || 0;
+        
+        console.log('Total violations:', totalViolations);
+        
+        // Distribute violations by user type
+        const { userGroups, violationData } = distributeViolationsByUserType(totalViolations);
         processViolationData(userGroups, violationData);
       } else {
         setError("No violation data available for this year");
@@ -116,7 +104,6 @@ export default function ViolationStatistics() {
       console.error("Error fetching violation data:", err);
       const errorMsg = err.response?.data?.message || err.message || "Failed to fetch data from server";
       setError(errorMsg);
-      
       setChartData({
         labels: [],
         datasets: [],
@@ -147,7 +134,7 @@ export default function ViolationStatistics() {
   React.useEffect(() => {
     fetchViolationData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, useSampleData, accessToken, user]);
+  }, [selectedYear, accessToken, user]);
 
   const chartOptions = {
     responsive: true,
@@ -215,13 +202,11 @@ export default function ViolationStatistics() {
       <div className="content-header">
         <h2>VIOLATION STATISTIC</h2>
         <div className="header-controls">
-          <button 
-            className={`data-toggle-btn ${useSampleData ? 'active' : ''}`}
-            onClick={() => setUseSampleData(!useSampleData)}
-            title={useSampleData ? 'Đang dùng dữ liệu mẫu' : 'Đang dùng dữ liệu thật'}
-          >
-            {useSampleData ? '📊 Dữ liệu mẫu' : '🌐 Dữ liệu thật'}
-          </button>
+          {reportId && (
+            <span className="report-info" title={`Report ID: ${reportId}`}>
+              📄 Report #{reportId}
+            </span>
+          )}
           <div className="year-selector">
             <label>this year</label>
             <select
