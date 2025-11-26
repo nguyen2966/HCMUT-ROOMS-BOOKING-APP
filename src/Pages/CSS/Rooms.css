@@ -173,3 +173,32 @@
 	color: #ef4444;
 	text-align: center;
 }
+
+.time-selection-box {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+    background: #f0f4f8;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.time-field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.time-field label {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #555;
+}
+
+.time-input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
