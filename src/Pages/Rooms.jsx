@@ -2,11 +2,8 @@ import React, { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import "./CSS/Rooms.css";
-import "./admin/Spacemanage.css";
 import RoomQR from "../Components/RoomQR/RoomQR";
 import axios from "axios";
-
-// import { useAppData } from "../Context/AppDataContext"; 
 import { useAuth } from "../Context/AuthContext";
 
 function SpaceCard({ room, onOpen }) {
@@ -53,6 +50,10 @@ export default function Rooms() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterBuilding, setFilterBuilding] = useState("All");
+  const [filterCapacity, setFilterCapacity] = useState("All");
+
   const [selected, setSelected] = useState(null);
   const [open, setOpen] = useState(false);
 
@@ -61,6 +62,8 @@ export default function Rooms() {
   const [endTimeStr, setEndTimeStr] = useState("09:00");
   const [teamSize, setTeamSize] = useState(1);
   const [isBooking, setIsBooking] = useState(false);
+
+  const buildings = ["All", ...new Set(rooms.map((r) => r.building))].sort();
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -80,6 +83,21 @@ export default function Rooms() {
     };
     fetchRooms();
   }, [accessToken]);
+
+  const filteredRooms = rooms.filter((room) => {
+    const matchesSearch = room.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesBuilding =
+      filterBuilding === "All" || room.building === filterBuilding;
+    let matchesCapacity = true;
+    if (filterCapacity === "< 10") matchesCapacity = room.capacity < 10;
+    else if (filterCapacity === "10 - 30")
+      matchesCapacity = room.capacity >= 10 && room.capacity <= 30;
+    else if (filterCapacity === "> 30") matchesCapacity = room.capacity > 30;
+
+    return matchesSearch && matchesBuilding && matchesCapacity;
+  });
 
   const openModal = (room) => {
     setSelected(room);
@@ -148,18 +166,53 @@ export default function Rooms() {
 
   return (
     <div className="learning-spaces">
-      <h2 className="page-title">Learning Spaces</h2>
+      <div className="page-header-row">
+        <h2 className="page-title">Learning Spaces</h2>
+
+        <div className="filter-toolbar">
+          <div className="search-box">
+            <input
+              type="text"
+              placeholder="Search room..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <span className="search-icon">🔍</span>
+          </div>
+          <select
+            className="filter-select"
+            value={filterBuilding}
+            onChange={(e) => setFilterBuilding(e.target.value)}
+          >
+            {buildings.map((b) => (
+              <option key={b} value={b}>
+                {b === "All" ? "All Buildings" : `Building ${b}`}
+              </option>
+            ))}
+          </select>
+          <select
+            className="filter-select"
+            value={filterCapacity}
+            onChange={(e) => setFilterCapacity(e.target.value)}
+          >
+            <option value="All">All Capacities</option>
+            <option value="< 10">Small (&lt; 10)</option>
+            <option value="10 - 30">Medium (10 - 30)</option>
+            <option value="> 30">Large (&gt; 30)</option>
+          </select>
+        </div>
+      </div>
 
       <div className="rooms-grid">
         {loading ? (
             <p>Loading rooms...</p>
-        ) : rooms && rooms.length > 0 ? (
-          rooms.map((room) => (
-            <SpaceCard key={room.ID} room={room} onOpen={openModal} />
-          ))
-        ) : (
-          <p>No rooms found.</p>
-        )}
+          ) : filteredRooms.length > 0 ? (
+            filteredRooms.map((room) => (
+              <SpaceCard key={room.ID} room={room} onOpen={openModal} />
+            ))
+          ) : (
+            <p>No rooms match your criteria.</p>
+          )}
       </div>
 
       {open && selected && (
