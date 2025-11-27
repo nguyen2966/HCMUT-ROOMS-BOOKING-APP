@@ -40,6 +40,7 @@ export default function IoTPerformance() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [reportId, setReportId] = useState(null);
+  const [useSampleData, setUseSampleData] = useState(true);
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [],
@@ -47,6 +48,18 @@ export default function IoTPerformance() {
 
   // Generate years for dropdown (current year and past 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
+
+  // Sample data for demo/testing
+  const generateSampleData = () => {
+    const devices = DEVICE_TYPES;
+    const performanceData = [
+      { device: 'Air-conditioner', thisQuarter: 85, lastQuarter: 78 },
+      { device: 'Lights', thisQuarter: 92, lastQuarter: 88 },
+      { device: 'Ceiling fan', thisQuarter: 76, lastQuarter: 82 },
+      { device: 'Projector', thisQuarter: 68, lastQuarter: 71 }
+    ];
+    return { devices, performanceData };
+  };
 
   // Distribute IoT device performance by device type
   const distributePerformanceByDevice = (totalPerformance) => {
@@ -71,6 +84,15 @@ export default function IoTPerformance() {
     setError(null);
 
     try {
+      // Use sample data if toggled
+      if (useSampleData) {
+        const { devices, performanceData } = generateSampleData();
+        processPerformanceData(devices, performanceData);
+        setReportId(null);
+        setLoading(false);
+        return;
+      }
+
       if (!accessToken || !user) {
         setError("User not authenticated. Please login.");
         setLoading(false);
@@ -150,7 +172,7 @@ export default function IoTPerformance() {
   React.useEffect(() => {
     fetchPerformanceData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, accessToken, user]);
+  }, [selectedYear, accessToken, user, useSampleData]);
 
   const chartOptions = {
     indexAxis: 'y', // Horizontal bar chart
@@ -227,6 +249,13 @@ export default function IoTPerformance() {
       <div className="content-header">
         <h2>IOT DEVICES PERFORMANCE</h2>
         <div className="header-controls">
+          <button 
+            className={`data-toggle-btn ${useSampleData ? 'sample' : 'real'}`}
+            onClick={() => setUseSampleData(!useSampleData)}
+            title="Toggle between real and sample data"
+          >
+            {useSampleData ? '📊 Sample Data' : '🔗 Real Data'}
+          </button>
           {reportId && (
             <span className="report-info" title={`Report ID: ${reportId}`}>
               📄 Report #{reportId}

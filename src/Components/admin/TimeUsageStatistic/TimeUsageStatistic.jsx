@@ -33,6 +33,7 @@ export default function TimeUsageStatistic() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [reportId, setReportId] = useState(null);
+  const [useSampleData, setUseSampleData] = useState(true);
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [],
@@ -44,11 +45,25 @@ export default function TimeUsageStatistic() {
   // Generate years for dropdown (current year and past 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
+  // Sample data for demo/testing
+  const generateSampleData = () => {
+    return [180, 195, 210, 200, 185, 75, 60, 90, 185, 200, 180, 150];
+  };
+
   const fetchUsageData = async () => {
     setLoading(true);
     setError(null);
 
     try {
+      // Use sample data if toggled
+      if (useSampleData) {
+        const sampleData = generateSampleData();
+        processUsageData(sampleData);
+        setReportId(null);
+        setLoading(false);
+        return;
+      }
+
       if (!accessToken || !user) {
         setError("Vui lòng đăng nhập để xem báo cáo.");
         setLoading(false);
@@ -132,7 +147,7 @@ export default function TimeUsageStatistic() {
   React.useEffect(() => {
     fetchUsageData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, accessToken, user]);
+  }, [selectedYear, accessToken, user, useSampleData]);
 
   const chartOptions = {
     responsive: true,
@@ -219,6 +234,13 @@ export default function TimeUsageStatistic() {
       <div className="content-header">
         <h2>USAGE STATISTIC</h2>
         <div className="header-controls">
+          <button 
+            className={`data-toggle-btn ${useSampleData ? 'sample' : 'real'}`}
+            onClick={() => setUseSampleData(!useSampleData)}
+            title="Toggle between real and sample data"
+          >
+            {useSampleData ? '📊 Sample Data' : '🔗 Real Data'}
+          </button>
           {reportId && (
             <span className="report-info" title={`Report ID: ${reportId}`}>
               📄 Report #{reportId}

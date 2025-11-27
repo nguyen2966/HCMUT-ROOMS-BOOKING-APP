@@ -78,6 +78,17 @@
 .btn-green{background:#19a34a;color:#fff;box-shadow:0 6px 0 rgba(0,0,0,0.04)}
 .btn-red{background:#e24d4d;color:#fff}
 .btn-dark{background:#333;color:#fff}
+.btn-primary{
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+}
+.btn-primary:hover{
+  background: linear-gradient(135deg, #5568d3 0%, #653a91 100%);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+  transform: translateY(-2px);
+}
 
 .qr-area{text-align:center}
 .qr-center{display:flex;justify-content:center;padding:10px}

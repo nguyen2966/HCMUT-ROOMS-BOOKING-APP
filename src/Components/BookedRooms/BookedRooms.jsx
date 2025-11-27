@@ -3,6 +3,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import "./BookedRooms.css";
 import axios from 'axios';
 import { useAuth } from '../../Context/AuthContext';
+import FeedbackModal from './FeedbackModal';
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
@@ -68,6 +69,8 @@ const BookedRooms = () => {
   const [selected, setSelected] = useState(null);
   const [showQR, setShowQR] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackBooking, setFeedbackBooking] = useState(null);
 
   const fetchBookings = async () => {
     if (!accessToken) return;
@@ -89,7 +92,8 @@ const BookedRooms = () => {
                 uiStatus = 'inuse';
             }
             const imgUrl = b.room?.room_image?.[0]?.image_url || null;
-            return { ...b, uiStatus, img: imgUrl };
+            const hasFeedback = b.feedback && b.feedback.length > 0;
+            return { ...b, uiStatus, img: imgUrl, hasFeedback };
           });
 
         setRooms(myBookings.reverse());
@@ -140,6 +144,23 @@ const BookedRooms = () => {
       closePanel();
     } catch (error) {
       alert("Check-out thất bại: " + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleOpenFeedback = (booking) => {
+    setFeedbackBooking(booking);
+    setShowFeedbackModal(true);
+  };
+
+  const handleSubmitFeedback = async (feedbackData) => {
+    try {
+      await axios.post('http://localhost:3069/feedback', feedbackData, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      // Refresh bookings to update feedback status
+      fetchBookings();
+    } catch (error) {
+      throw error;
     }
   };
 
@@ -199,6 +220,18 @@ const BookedRooms = () => {
                       <button className="btn btn-red" onClick={handleCheckOut}>Check-Out Now</button>
                   )}
 
+                  {selected.uiStatus === 'checkedout' && !selected.hasFeedback && (
+                      <button className="btn btn-primary" onClick={() => handleOpenFeedback(selected)}>
+                        ⭐ Đánh giá phòng
+                      </button>
+                  )}
+
+                  {selected.uiStatus === 'checkedout' && selected.hasFeedback && (
+                      <div style={{padding: '12px', background: '#e8f5e9', borderRadius: '8px', textAlign: 'center', color: '#2e7d32', fontSize: '14px'}}>
+                        ✓ Đã đánh giá
+                      </div>
+                  )}
+
                   <button className="btn btn-dark" onClick={() => setShowQR(true)}>Show QR Code</button>
                 </div>
               </div>
@@ -224,6 +257,17 @@ const BookedRooms = () => {
             )}
           </div>
         </div>
+      )}
+
+      {showFeedbackModal && feedbackBooking && (
+        <FeedbackModal
+          booking={feedbackBooking}
+          onClose={() => {
+            setShowFeedbackModal(false);
+            setFeedbackBooking(null);
+          }}
+          onSubmit={handleSubmitFeedback}
+        />
       )}
     </div>
   )

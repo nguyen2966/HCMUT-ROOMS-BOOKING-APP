@@ -10,6 +10,7 @@ import ElectricConsumption from "../Components/admin/ElectricConsumption/Electri
 import SpaceManage from "../Components/admin/SpaceManage/SpaceManage"
 import UserInfo from "../Components/UserInfo/UserInfo";
 import BookedRooms from "../Components/BookedRooms/BookedRooms";
+import FeedbackStatistics from "../Components/admin/FeedbackStatistics/FeedbackStatistics";
 
 
 export const adminMenu = [
@@ -57,6 +58,11 @@ export const adminMenu = [
     name: "Electric consumption",
     description: "Electric consumption by month",
     component: ElectricConsumption,
+  },
+  {
+    name: "Feedback & Ratings",
+    description: "User feedback and satisfaction statistics",
+    component: FeedbackStatistics,
   },
 ];
 
