@@ -33,6 +33,7 @@ export default function CancellationStatistic() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [reportId, setReportId] = useState(null);
+  const [useSampleData, setUseSampleData] = useState(true);
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [],
@@ -44,11 +45,25 @@ export default function CancellationStatistic() {
   // Generate years for dropdown (current year and past 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
+  // Sample data for demo/testing
+  const generateSampleData = () => {
+    return [18, 12, 14, 16, 22, 9, 7, 11, 19, 15, 13, 10];
+  };
+
   const fetchCancellationData = async () => {
     setLoading(true);
     setError(null);
 
     try {
+      // Use sample data if toggled
+      if (useSampleData) {
+        const sampleData = generateSampleData();
+        processCancellationsData(sampleData);
+        setReportId(null);
+        setLoading(false);
+        return;
+      }
+
       if (!accessToken || !user) {
         setError("Vui lòng đăng nhập để xem báo cáo.");
         setLoading(false);
@@ -129,7 +144,7 @@ export default function CancellationStatistic() {
   React.useEffect(() => {
     fetchCancellationData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, accessToken, user]);
+  }, [selectedYear, accessToken, user, useSampleData]);
 
   const chartOptions = {
     responsive: true,
@@ -216,6 +231,13 @@ export default function CancellationStatistic() {
       <div className="content-header">
         <h2>CANCELLATION STATISTIC</h2>
         <div className="header-controls">
+          <button 
+            className={`data-toggle-btn ${useSampleData ? 'sample' : 'real'}`}
+            onClick={() => setUseSampleData(!useSampleData)}
+            title="Toggle between real and sample data"
+          >
+            {useSampleData ? '📊 Sample Data' : '🔗 Real Data'}
+          </button>
           {reportId && (
             <span className="report-info" title={`Report ID: ${reportId}`}>
               📄 Report #{reportId}

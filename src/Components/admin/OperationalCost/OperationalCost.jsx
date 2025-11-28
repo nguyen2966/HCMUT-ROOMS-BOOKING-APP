@@ -33,6 +33,7 @@ export default function OperationalCost() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [reportId, setReportId] = useState(null);
+  const [useSampleData, setUseSampleData] = useState(true);
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [],
@@ -43,6 +44,11 @@ export default function OperationalCost() {
 
   // Generate years for dropdown (current year and past 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
+
+  // Sample data for demo/testing
+  const generateSampleData = () => {
+    return [65, 42, 78, 62, 52, 75, 82, 78, 45, 38, 70, 28];
+  };
 
   // Distribute yearly cost forecast by month based on energy usage patterns
   const distributeCostByMonth = (yearlyForecast) => {
@@ -61,6 +67,15 @@ export default function OperationalCost() {
     setError(null);
 
     try {
+      // Use sample data if toggled
+      if (useSampleData) {
+        const sampleData = generateSampleData();
+        processCostData(sampleData);
+        setReportId(null);
+        setLoading(false);
+        return;
+      }
+
       if (!accessToken || !user) {
         setError("User not authenticated. Please login.");
         setLoading(false);
@@ -152,7 +167,7 @@ export default function OperationalCost() {
   React.useEffect(() => {
     fetchCostData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, accessToken, user]);
+  }, [selectedYear, accessToken, user, useSampleData]);
 
   const chartOptions = {
     responsive: true,
@@ -227,6 +242,13 @@ export default function OperationalCost() {
       <div className="content-header">
         <h2>OPERATIONAL COST FORECAST</h2>
         <div className="header-controls">
+          <button 
+            className={`data-toggle-btn ${useSampleData ? 'sample' : 'real'}`}
+            onClick={() => setUseSampleData(!useSampleData)}
+            title="Toggle between real and sample data"
+          >
+            {useSampleData ? '📊 Sample Data' : '🔗 Real Data'}
+          </button>
           {reportId && (
             <span className="report-info" title={`Report ID: ${reportId}`}>
               📄 Report #{reportId}

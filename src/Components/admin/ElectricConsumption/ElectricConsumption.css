@@ -38,6 +38,48 @@
   border: 1px solid #c8e6c9;
 }
 
+.data-toggle-btn {
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.data-toggle-btn:hover {
+  border-color: #2275CF;
+  background-color: #f8f9fa;
+}
+
+.data-toggle-btn.real {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border-color: #667eea;
+}
+
+.data-toggle-btn.real:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #653a91 100%);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.data-toggle-btn.sample {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: #fff;
+  border-color: #f093fb;
+}
+
+.data-toggle-btn.sample:hover {
+  background: linear-gradient(135deg, #e082ea 0%, #e4465b 100%);
+  box-shadow: 0 2px 8px rgba(240, 147, 251, 0.3);
+}
+
 .data-toggle-btn.active {
   background-color: #2275CF;
   border-color: #2275CF;

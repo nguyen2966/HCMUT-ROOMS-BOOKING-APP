@@ -44,6 +44,7 @@ export default function RoomOccupancyRates() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [reportId, setReportId] = useState(null);
+  const [useSampleData, setUseSampleData] = useState(true);
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [],
@@ -51,6 +52,23 @@ export default function RoomOccupancyRates() {
 
   // Generate years for dropdown (current year and past 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
+
+  // Sample data for demo/testing
+  const generateSampleData = () => {
+    const buildings = ['BK.B1', 'BK.B2', 'BK.B3', 'BK.B6'];
+    const roomTypes = [
+      { name: 'Laboratory', color: 'rgb(251, 146, 60)', bgColor: 'rgba(251, 146, 60, 0.8)' },
+      { name: 'Classroom', color: 'rgb(52, 211, 153)', bgColor: 'rgba(52, 211, 153, 0.8)' },
+      { name: 'Library', color: 'rgb(168, 85, 247)', bgColor: 'rgba(168, 85, 247, 0.8)' }
+    ];
+    const occupancyData = [
+      { building: 'BK.B1', Laboratory: 39, Classroom: 27, Library: 12 },
+      { building: 'BK.B2', Laboratory: 29, Classroom: 21, Library: 9 },
+      { building: 'BK.B3', Laboratory: 36, Classroom: 25, Library: 11 },
+      { building: 'BK.B6', Laboratory: 26, Classroom: 18, Library: 8 }
+    ];
+    return { buildings, roomTypes, occupancyData };
+  };
 
   // Distribute overall occupancy rate by building and room type
   const distributeOccupancyByBuildingAndType = (overallRate) => {
@@ -87,6 +105,15 @@ export default function RoomOccupancyRates() {
     setError(null);
 
     try {
+      // Use sample data if toggled
+      if (useSampleData) {
+        const { buildings, roomTypes, occupancyData } = generateSampleData();
+        processOccupancyData(buildings, roomTypes, occupancyData);
+        setReportId(null);
+        setLoading(false);
+        return;
+      }
+
       if (!accessToken || !user) {
         setError("User not authenticated. Please login.");
         setLoading(false);
@@ -156,7 +183,7 @@ export default function RoomOccupancyRates() {
   React.useEffect(() => {
     fetchOccupancyData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, accessToken, user]);
+  }, [selectedYear, accessToken, user, useSampleData]);
 
   const chartOptions = {
     responsive: true,
@@ -236,6 +263,13 @@ export default function RoomOccupancyRates() {
       <div className="content-header">
         <h2>OCCUPANCY RATE OF ROOM IN BUILDING</h2>
         <div className="header-controls">
+          <button 
+            className={`data-toggle-btn ${useSampleData ? 'sample' : 'real'}`}
+            onClick={() => setUseSampleData(!useSampleData)}
+            title="Toggle between real and sample data"
+          >
+            {useSampleData ? '📊 Sample Data' : '🔗 Real Data'}
+          </button>
           {reportId && (
             <span className="report-info" title={`Report ID: ${reportId}`}>
               📄 Report #{reportId}

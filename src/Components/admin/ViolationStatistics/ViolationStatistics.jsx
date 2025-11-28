@@ -38,6 +38,7 @@ export default function ViolationStatistics() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [reportId, setReportId] = useState(null);
+  const [useSampleData, setUseSampleData] = useState(true);
   const [chartData, setChartData] = useState({
     labels: [],
     datasets: [],
@@ -45,6 +46,18 @@ export default function ViolationStatistics() {
 
   // Generate years for dropdown (current year and past 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
+
+  // Sample data for demo/testing
+  const generateSampleData = () => {
+    const userGroups = ['Student', 'Teacher/TA', 'Technical staff', 'Staff'];
+    const violationData = [
+      { group: 'Student', violations: 32 },
+      { group: 'Teacher/TA', violations: 6 },
+      { group: 'Technical staff', violations: 16 },
+      { group: 'Staff', violations: 10 }
+    ];
+    return { userGroups, violationData };
+  };
 
   // Distribute total violations by user type using fixed ratios
   const distributeViolationsByUserType = (totalViolations) => {
@@ -63,6 +76,15 @@ export default function ViolationStatistics() {
     setError(null);
 
     try {
+      // Use sample data if toggled
+      if (useSampleData) {
+        const { userGroups, violationData } = generateSampleData();
+        processViolationData(userGroups, violationData);
+        setReportId(null);
+        setLoading(false);
+        return;
+      }
+
       if (!accessToken || !user) {
         setError("User not authenticated. Please login.");
         setLoading(false);
@@ -134,7 +156,7 @@ export default function ViolationStatistics() {
   React.useEffect(() => {
     fetchViolationData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, accessToken, user]);
+  }, [selectedYear, accessToken, user, useSampleData]);
 
   const chartOptions = {
     responsive: true,
@@ -202,6 +224,13 @@ export default function ViolationStatistics() {
       <div className="content-header">
         <h2>VIOLATION STATISTIC</h2>
         <div className="header-controls">
+          <button 
+            className={`data-toggle-btn ${useSampleData ? 'sample' : 'real'}`}
+            onClick={() => setUseSampleData(!useSampleData)}
+            title="Toggle between real and sample data"
+          >
+            {useSampleData ? '📊 Sample Data' : '🔗 Real Data'}
+          </button>
           {reportId && (
             <span className="report-info" title={`Report ID: ${reportId}`}>
               📄 Report #{reportId}

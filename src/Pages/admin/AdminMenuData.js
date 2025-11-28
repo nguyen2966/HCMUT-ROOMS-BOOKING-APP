@@ -9,7 +9,8 @@ import ViolationStatistics from "../../Components/admin/ViolationStatistics/Viol
 import ElectricConsumption from "../../Components/admin/ElectricConsumption/ElectricConsumption";
 import IoTPerformance from "../../Components/admin/IoTPerformance/IoTPerformance";
 import OperationalCost from "../../Components/admin/OperationalCost/OperationalCost";
-import SpaceManage from "../../Components/admin/SpaceManage/SpaceManage"
+import SpaceManage from "../../Components/admin/SpaceManage/SpaceManage";
+import FeedbackStatistics from "../../Components/admin/FeedbackStatistics/FeedbackStatistics";
 
 export const adminMenu = [
   {
@@ -66,5 +67,10 @@ export const adminMenu = [
     name: "Operational cost forecast",
     description: "Operational cost forecast by month",
     component: OperationalCost,
+  },
+  {
+    name: "Feedback & Ratings",
+    description: "User feedback and satisfaction statistics",
+    component: FeedbackStatistics,
   },
 ];
