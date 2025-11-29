@@ -15,9 +15,18 @@ function SpaceCard({ room, onOpen }) {
       ? "inuse"
       : "checkedout";
 
+  const imageUrl = room.room_image?.[0]?.image_url;
   return (
     <div className={`ls-room-card ${statusClass}`} onClick={() => onOpen(room)}>
-      <div className="room-thumb"></div>
+      <div 
+        className="room-thumb"
+        style={{
+          backgroundImage: imageUrl ? `url(${imageUrl})` : 'none',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
+      </div>
       <div className="room-info">
         <div className="room-info-top">
           <div className="info-left">
@@ -63,11 +72,15 @@ export default function Rooms() {
   const [teamSize, setTeamSize] = useState(1);
   const [isBooking, setIsBooking] = useState(false);
 
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const buildings = ["All", ...new Set(rooms.map((r) => r.building))].sort();
 
   useEffect(() => {
     const fetchRooms = async () => {
-      if (!accessToken) return;
+      if (!accessToken) {
+          setLoading(false);
+          return;
+      }
       try {
         const res = await axios.get("http://localhost:3069/study-space", {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -106,6 +119,7 @@ export default function Rooms() {
     setStartTimeStr("08:00");
     setEndTimeStr("09:00");
     setTeamSize(1);
+    setCurrentImageIndex(0);
   };
 
   const closeModal = () => {
@@ -120,34 +134,28 @@ export default function Rooms() {
       return;
     }
 
-    // Validate giờ
     if (startTimeStr >= endTimeStr) {
       alert("Giờ kết thúc phải sau giờ bắt đầu!");
       return;
     }
-
     setIsBooking(true);
 
     try {
-      // 1. Tạo object Date cho start_time
       const [startHour, startMin] = startTimeStr.split(":").map(Number);
       const startDateTime = new Date(startDate);
       startDateTime.setHours(startHour, startMin, 0, 0);
 
-      // 2. Tạo object Date cho end_time
       const [endHour, endMin] = endTimeStr.split(":").map(Number);
       const endDateTime = new Date(startDate);
       endDateTime.setHours(endHour, endMin, 0, 0);
 
-      // 3. Chuẩn bị payload gửi Backend
       const payload = {
         room_id: selected.ID,
         booking_user: user.ID,
-        start_time: startDateTime, // Axios tự format ISO String
+        start_time: startDateTime,
         end_time: endDateTime,
       };
 
-      // 4. Gọi API
       await axios.post("http://localhost:3069/booking", payload, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
@@ -164,6 +172,21 @@ export default function Rooms() {
     }
   };
 
+  const nextImage = (e) => {
+    e.stopPropagation();
+    if (selected?.room_image?.length > 0) {
+      setCurrentImageIndex((prev) => (prev + 1) % selected.room_image.length);
+    }
+  };
+
+  const prevImage = (e) => {
+    e.stopPropagation();
+    if (selected?.room_image?.length > 0) {
+      setCurrentImageIndex((prev) => 
+        prev === 0 ? selected.room_image.length - 1 : prev - 1
+      );
+    }
+  };
   return (
     <div className="learning-spaces">
       <div className="page-header-row">
@@ -219,8 +242,75 @@ export default function Rooms() {
         <div className="sm-modal-overlay" onClick={closeModal}>
           <div className="sm-modal" onClick={(e) => e.stopPropagation()}>
             <div className="sm-left">
-              <div className="sm-image-placeholder">Preview image</div>
+              <div style={{ position: 'relative', marginBottom: '15px' }}>
+                {(() => {
+                  const images = selected.room_image || [];
+                  const currentImgUrl = images[currentImageIndex]?.image_url;
+                  
+                  return (
+                    <div 
+                      className="sm-image-placeholder"
+                      style={{
+                        backgroundImage: currentImgUrl ? `url(${currentImgUrl})` : 'none',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundColor: '#f0f0f0',
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      {!currentImgUrl && <span style={{color:'#999'}}>No Preview Image</span>}
 
+                      {/* Nút Previous (Chỉ hiện khi có nhiều hơn 1 ảnh) */}
+                      {images.length > 1 && (
+                        <button 
+                          onClick={prevImage}
+                          style={{
+                            position: 'absolute', left: '10px',
+                            background: 'rgba(0,0,0,0.5)', color: '#fff',
+                            border: 'none', borderRadius: '50%',
+                            width: '30px', height: '30px', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '18px', fontWeight: 'bold'
+                          }}
+                        >
+                          ‹
+                        </button>
+                      )}
+
+                      {/* Nút Next (Chỉ hiện khi có nhiều hơn 1 ảnh) */}
+                      {images.length > 1 && (
+                        <button 
+                          onClick={nextImage}
+                          style={{
+                            position: 'absolute', right: '10px',
+                            background: 'rgba(0,0,0,0.5)', color: '#fff',
+                            border: 'none', borderRadius: '50%',
+                            width: '30px', height: '30px', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '18px', fontWeight: 'bold'
+                          }}
+                        >
+                          ›
+                        </button>
+                      )}
+
+                      {/* Hiển thị số trang (Ví dụ: 1/3) */}
+                      {images.length > 1 && (
+                        <div style={{
+                          position: 'absolute', bottom: '10px', right: '10px',
+                          background: 'rgba(0,0,0,0.6)', color: '#fff',
+                          padding: '2px 8px', borderRadius: '10px', fontSize: '12px'
+                        }}>
+                          {currentImageIndex + 1} / {images.length}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
               <div className="sm-desc">
                 <div className="sm-desc-row">
                   <div className="sm-desc-left">
