@@ -1,44 +1,64 @@
-.ls-room-card{
-	background:#fff;
-	border-radius:8px;
-	border:1px solid #f0f0f0;
-	padding:0;
-	display:flex;
-	flex-direction:column;
-	cursor:pointer;
-	box-shadow:0 12px 30px rgba(0,0,0,0.06);
-	overflow:hidden;
+.ls-room-card {
+	border: 1px solid #e0e0e0;
+	border-radius: 12px;
+	overflow: hidden;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	background: white;
+}
+
+.ls-room-card:hover {
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	transform: translateY(-2px);
+}
+
+.ls-room-card.available {
+	border-left: 4px solid #26e536;
+}
+
+.ls-room-card .unavailable {
+	border-left: 4px solid #dc2626;
+	opacity: 0.7;
+}
+
+.ls-room-card.unavailable:hover {
+	cursor: not-allowed;
+	transform: none;
 }
 .ls-room-card .room-thumb{
 	height:240px;
-	width: 280px;
+	width: 100%;
 	background: repeating-conic-gradient(
 		#cccccc 0% 25%,
 		#ffffff 0% 50%
 	) 0 / 20px 20px;
 	border-bottom:1px solid #f0f0f0;
 }
-.ls-room-card .room-info{padding:18px}
-.ls-room-card .room-info .room-info-top{
-	display:flex;
-	justify-content:space-between;
-	align-items:center;
-	gap:12px;
+.ls-room-card .room-info {
+	padding: 1rem;
 }
+.ls-room-card .room-info .room-info-top {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: 1rem;
+}
+
 .ls-room-card .room-info .room-info-top .info-left{flex:1}
-.ls-room-card .room-info .room-info-top .info-left .room-id{font-weight:700;font-size:15px;color:#111}
-.ls-room-card .room-info .room-info-top .info-left .room-meta {
-    margin-bottom: 0.5rem;
-    color: #666;
+.ls-room-card .room-info .room-info-top .info-left .info-left .room-id {
+	margin-bottom: 0.5rem;
+	color: #1a1a1a;
+}
+.ls-room-card .room-info .room-info-top .info-left .info-left .room-meta {
+	color: #666;
+	line-height: 1.5;
 }
 .ls-room-card .room-info .room-info-top .room-status{margin-left:12px}
-.ls-room-card .room-info .room-info-top .room-status .status-pill{
-	padding:6px 14px;
-	border-radius:20px;
-	font-weight:700;
-	background:#2ee06a; /* bright green */
-	color:#0b4f22;
-	box-shadow:0 4px 0 rgba(0,0,0,0.04);
+.ls-room-card .room-info .room-info-top .room-status .status-pill {
+	display: inline-block;
+	padding: 0.25rem 0.75rem;
+	border-radius: 12px;
+	color: white;
 }
 .ls-room-card .room-info .room-info-top .room-status .status-pill.inuse-status{
 	padding:6px 14px;
@@ -57,17 +77,18 @@
 	box-shadow:0 4px 0 rgba(0,0,0,0.04);
 }
 /*.ls-room-card .room-info .room-tags{margin-top:10px}*/
-.ls-room-card .room-info .room-tags{
-	display:flex;
-	gap:10px;
-	flex-wrap:nowrap;
-	margin-top:14px
+.ls-room-card .room-info .room-tags {
+	display: flex;
+	gap: 0.5rem;
+	flex-wrap: wrap;
 }
-.ls-room-card .room-info .room-tags .tag{
-	padding:3px 6px;
-	border-radius:14px;
-	border:1px solid #e8e6ea;
-	background:#fff
+.ls-room-card .room-info .room-tags .tag {
+	padding: 0.25rem 0.75rem;
+	border: 1px solid #e0e0e0;
+	border-radius: 6px;
+	background: white;
+	cursor: pointer;
+	transition: all 0.2s;
 }
 /*--------------------------------------------------*/
 .learning-spaces {
@@ -151,6 +172,7 @@
 }
 .sm-modal-overlay .sm-modal {
     background: white;
+	border: 10px solid #e0e0e0;
     border-radius: 16px;
     max-width: 1000px;
     width: 100%;
@@ -227,7 +249,7 @@
     opacity: 0.5;
 }
 .sm-modal-overlay .sm-modal .sm-right {
-    width: 55%;
+    width: 100%;
     padding: 20px;
     display: flex;
     flex-direction: column;
@@ -283,6 +305,8 @@
 	border: 1px solid #e0e0e0;
 	border-radius: 8px;
 	padding: 0.5rem;
+	margin-left: auto;
+    margin-right: auto;
 }
 /*--------------------------------------------*/
 @media (max-width:960px){
