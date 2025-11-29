@@ -71,6 +71,7 @@ const BookedRooms = () => {
   const [loading, setLoading] = useState(true);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackBooking, setFeedbackBooking] = useState(null);
+  const [viewMode, setViewMode] = useState('edit');
 
   const fetchBookings = async () => {
     if (!accessToken) return;
@@ -149,6 +150,13 @@ const BookedRooms = () => {
 
   const handleOpenFeedback = (booking) => {
     setFeedbackBooking(booking);
+    setViewMode('edit');
+    setShowFeedbackModal(true);
+  };
+
+  const handleViewFeedback = (booking) => {
+    setFeedbackBooking(booking);
+    setViewMode('view');
     setShowFeedbackModal(true);
   };
 
@@ -227,9 +235,9 @@ const BookedRooms = () => {
                   )}
 
                   {selected.uiStatus === 'checkedout' && selected.hasFeedback && (
-                      <div style={{padding: '12px', background: '#e8f5e9', borderRadius: '8px', textAlign: 'center', color: '#2e7d32', fontSize: '14px'}}>
-                        ✓ Đã đánh giá
-                      </div>
+                      <button className="btn btn-primary" onClick={() => handleViewFeedback(selected)} style={{background: '#4caf50', borderColor: '#4caf50'}}>
+                        👁️ Xem đánh giá
+                      </button>
                   )}
 
                   <button className="btn btn-dark" onClick={() => setShowQR(true)}>Show QR Code</button>
@@ -262,9 +270,11 @@ const BookedRooms = () => {
       {showFeedbackModal && feedbackBooking && (
         <FeedbackModal
           booking={feedbackBooking}
+          viewMode={viewMode}
           onClose={() => {
             setShowFeedbackModal(false);
             setFeedbackBooking(null);
+            setViewMode('edit');
           }}
           onSubmit={handleSubmitFeedback}
         />

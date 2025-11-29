@@ -1,11 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './FeedbackModal.css';
 
-const FeedbackModal = ({ booking, onClose, onSubmit }) => {
+const FeedbackModal = ({ booking, onClose, onSubmit, viewMode = 'edit' }) => {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Load existing feedback when in view mode
+  useEffect(() => {
+    if (viewMode === 'view' && booking.feedback && booking.feedback.length > 0) {
+      const existingFeedback = booking.feedback[0];
+      setRating(existingFeedback.rating || 0);
+      setComment(existingFeedback.comment || '');
+    }
+  }, [viewMode, booking]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,7 +40,7 @@ const FeedbackModal = ({ booking, onClose, onSubmit }) => {
     <div className="feedback-modal-overlay" onClick={onClose}>
       <div className="feedback-modal" onClick={e => e.stopPropagation()}>
         <div className="feedback-header">
-          <h3>Đánh giá phòng</h3>
+          <h3>{viewMode === 'view' ? 'Đánh giá của bạn' : 'Đánh giá phòng'}</h3>
           <button className="close-btn" onClick={onClose}>&times;</button>
         </div>
 
@@ -52,9 +61,11 @@ const FeedbackModal = ({ booking, onClose, onSubmit }) => {
                     key={star}
                     type="button"
                     className={`star ${star <= (hoverRating || rating) ? 'active' : ''}`}
-                    onClick={() => setRating(star)}
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
+                    onClick={() => viewMode === 'edit' && setRating(star)}
+                    onMouseEnter={() => viewMode === 'edit' && setHoverRating(star)}
+                    onMouseLeave={() => viewMode === 'edit' && setHoverRating(0)}
+                    disabled={viewMode === 'view'}
+                    style={{ cursor: viewMode === 'view' ? 'default' : 'pointer' }}
                   >
                     ★
                   </button>
@@ -77,6 +88,8 @@ const FeedbackModal = ({ booking, onClose, onSubmit }) => {
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Chia sẻ trải nghiệm của bạn về phòng này..."
                 rows="4"
+                disabled={viewMode === 'view'}
+                readOnly={viewMode === 'view'}
               />
             </div>
 
@@ -87,15 +100,17 @@ const FeedbackModal = ({ booking, onClose, onSubmit }) => {
                 onClick={onClose}
                 disabled={submitting}
               >
-                Hủy
+                {viewMode === 'view' ? 'Đóng' : 'Hủy'}
               </button>
-              <button 
-                type="submit" 
-                className="btn btn-submit"
-                disabled={submitting}
-              >
-                {submitting ? 'Đang gửi...' : 'Gửi đánh giá'}
-              </button>
+              {viewMode === 'edit' && (
+                <button 
+                  type="submit" 
+                  className="btn btn-submit"
+                  disabled={submitting}
+                >
+                  {submitting ? 'Đang gửi...' : 'Gửi đánh giá'}
+                </button>
+              )}
             </div>
           </form>
         </div>
