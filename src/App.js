@@ -3,13 +3,13 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import Navbar from './Components/Navbar/Navbar';
 import Footer from './Components/Footer/Footer';
 import LoginSignup from './Pages/LoginSignup';
-import LearningSpaces from './Pages/LearningSpaces';
 import AdminPanel from './Pages/admin/admin';
 import TechnicalTeamPanel from './Pages/technicalteam/technicalteam';
 import { AuthProvider, useAuth } from './Context/AuthContext';
 import { AppDataProvider } from './Context/AppDataContext';
 import Home from './Pages/Home';
 import Equiqment from './Pages/Equiqment';
+import Rooms from './Pages/Rooms';
 
 // Layout wrapper to hide Navbar/Footer on login
 function Layout({ children }) {
@@ -52,7 +52,7 @@ function AppContent() {
           path="/rooms" 
           element={
             <ProtectedRoute>
-              <LearningSpaces />
+              <Rooms />
             </ProtectedRoute>
           } 
         />

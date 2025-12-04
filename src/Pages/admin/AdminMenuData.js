@@ -1,5 +1,4 @@
 // AdminMenuData.js
-import AdminInfo from "../../Components/admin/AdminInfo/AdminInfo";
 import SystemConfig from "../../Components/admin/SystemConfig/SystemConfig";
 import UserManage from "../../Components/admin/UserManage/UserManage";
 import TimeUsageStatistic from "../../Components/admin/TimeUsageStatistic/TimeUsageStatistic";
@@ -13,11 +12,6 @@ import SpaceManage from "../../Components/admin/SpaceManage/SpaceManage";
 import FeedbackStatistics from "../../Components/admin/FeedbackStatistics/FeedbackStatistics";
 
 export const adminMenu = [
-  {
-    name: "Admin Info",
-    description: "View or change your information.",
-    component: AdminInfo,
-  },
   {
     name: "System Config",
     description: "Configure system's constant.",
