@@ -17,6 +17,11 @@
   margin-top: 70px; /* same height as navbar */
 }
 
+/* FIX: Loại bỏ margin-top khi không có Navbar (trang Login) */
+.main-content.no-navbar {
+    margin-top: 0;
+}
+
 .App-header {
   background-color: #282c34;
   min-height: 100vh;

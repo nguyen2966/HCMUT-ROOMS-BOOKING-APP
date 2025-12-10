@@ -4,6 +4,7 @@ import ApplicationConfig from "./ApplicationConfig";
 import IOTConfig from "./IOTConfig";
 import axiosClient from "../../../config/axiosClient";
 import { useAuth } from "../../../Context/AuthContext";
+import { useAppData } from "../../../Context/AppDataContext"; // ADD THIS
 
 const tabs = [
   "Service time", "Booking duration", "Maximum bookings", 
@@ -22,13 +23,12 @@ const mapConfigArrayToKeyedObject = (configArray) => {
     }, {});
 };
 
-
-
 export default function SystemConfig() {
-  const [activeTab, setActiveTab] = useState("Thời gian hoạt động");
-  const [configs, setConfigs] = useState({}); // Dữ liệu cấu hình đã được map
+  const [activeTab, setActiveTab] = useState("Service time");
+  const [configs, setConfigs] = useState({}); 
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { refreshData } = useAppData(); // GET refreshData from context
 
   // --- API Wrapper ---
   const AdminConfigAPI = {
@@ -37,8 +37,10 @@ export default function SystemConfig() {
           return mapConfigArrayToKeyedObject(res.data.metaData.configs);
       },
       update: async (id, value) => {
-          // Gửi PATCH request. Backend dùng token để xác định admin_id.
-          const res = await axiosClient.patch(`/admin/configs/${id}`, { config_value: value,admin_id: user.ID });
+          const res = await axiosClient.patch(`/admin/configs/${id}`, { 
+            config_value: value,
+            admin_id: user.ID 
+          });
           return res.data;
       }
   };
@@ -77,6 +79,12 @@ export default function SystemConfig() {
                   value: newValue,
               }
           }));
+          
+          // 3. **FIX: Refresh AppDataContext so all components get new configs**
+          if (refreshData) {
+              await refreshData();
+          }
+          
           alert("Cập nhật thành công!");
       } catch (error) {
           console.error("Update failed:", error);

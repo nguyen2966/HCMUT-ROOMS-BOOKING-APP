@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import "./CSS/Rooms.css";
+import "./CSS/Rooms.css"; 
 import RoomQR from "../Components/RoomQR/RoomQR";
-import axios from "axios";
 import { useAuth } from "../Context/AuthContext";
+import axiosClient from "../config/axiosClient"; 
+import { useAppData } from "../Context/AppDataContext";
+
+// Format date to YYYY-MM-DD for comparison
+const formatDateToISOString = (date) => {
+    return date.toISOString().split('T')[0];
+};
 
 function SpaceCard({ room, onOpen }) {
   const normalized = room.status?.toLowerCase();
@@ -13,9 +19,11 @@ function SpaceCard({ room, onOpen }) {
       ? "available"
       : normalized === "inuse" || normalized === "in used"
       ? "inuse"
-      : "checkedout";
-
+      : "unavailable";
+  
   const imageUrl = room.room_image?.[0]?.image_url;
+  const devices = room.device?.slice(0, 3) || [];
+
   return (
     <div className={`ls-room-card ${statusClass}`} onClick={() => onOpen(room)}>
       <div 
@@ -33,7 +41,7 @@ function SpaceCard({ room, onOpen }) {
             <div className="room-id">{room.name}</div>
             <div className="room-meta">
               Campus: Dĩ An <br />
-              Building: {room.building}
+              Building: {room.building} | Capacity: {room.capacity}
             </div>
           </div>
           <div className="room-status">
@@ -43,9 +51,9 @@ function SpaceCard({ room, onOpen }) {
           </div>
         </div>
         <div className="room-tags">
-          {room.device?.slice(0, 3).map((d) => (
+          {devices.map((d) => (
             <button key={d.ID} className="tag">
-              {d.name}
+              {d.name.split(' ')[0]}
             </button>
           ))}
         </div>
@@ -55,8 +63,11 @@ function SpaceCard({ room, onOpen }) {
 }
 
 export default function Rooms() {
-  const { accessToken, user } = useAuth(); 
-  const [rooms, setRooms] = useState([]);
+  const { user } = useAuth(); 
+  const { rooms: allRooms, refreshData, configs } = useAppData(); 
+  console.log(configs);
+  
+  const [rooms, setRooms] = useState(allRooms);
   const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,44 +84,72 @@ export default function Rooms() {
   const [isBooking, setIsBooking] = useState(false);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [allSystemBookings, setAllSystemBookings] = useState([]); 
+
   const buildings = ["All", ...new Set(rooms.map((r) => r.building))].sort();
+  
+  // Get Configs with fallbacks
+  
+  const MAX_ADVANCE_DAYS = parseInt(configs['ADVANCE_BOOKING_DAYS_STUDENT']) || 7; 
+  const MAX_GROUP_SIZE = parseInt(configs['MAX_GROUP_SIZE']) || 6; 
+  const MAX_BOOKING_DURATION = parseInt(configs['MAX_BOOKING_DURATION']) || 180;
+  const MIN_BOOKING_DURATION = parseInt(configs['MIN_BOOKING_DURATION']) || 30;
+
+  // Sync data from context
+  useEffect(() => {
+    setRooms(allRooms);
+    setLoading(false); 
+  }, [allRooms]);
+
+  // Fetch all bookings
+  const fetchAllBookings = useCallback(async () => {
+    if (!user) return;
+    try {
+        const res = await axiosClient.get(`/booking`); 
+        const activeBookings = res.data.metaData?.bookingList.filter(b => b.status?.toLowerCase() !== 'cancelled') || [];
+        setAllSystemBookings(activeBookings);
+    } catch (err) {
+        console.error("Failed to fetch all system bookings:", err);
+        setAllSystemBookings([]);
+    }
+  }, [user]);
 
   useEffect(() => {
-    const fetchRooms = async () => {
-      if (!accessToken) {
-          setLoading(false);
-          return;
-      }
-      try {
-        const res = await axios.get("http://localhost:3069/study-space", {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        if (res.data && res.data.metaData && res.data.metaData.roomList) {
-          setRooms(res.data.metaData.roomList);
+    if (user) { 
+        fetchAllBookings();
+    }
+  }, [user, fetchAllBookings]);
+
+  // Filter booked slots for selected room and date
+  const bookedSlots = useMemo(() => {
+    if (!selected || !startDate) return [];
+
+    const selectedDateString = formatDateToISOString(startDate);
+
+    return allSystemBookings.filter(booking => {
+        const bookingDateString = new Date(booking.start_time).toISOString().split('T')[0];
+        return booking.room_id === selected.ID && bookingDateString === selectedDateString;
+    });
+  }, [allSystemBookings, selected, startDate]);
+
+  // Highlight dates with bookings on calendar
+  const highlightDates = useMemo(() => {
+    const dates = new Set();
+    const today = new Date();
+    
+    allSystemBookings
+      .filter(b => b.room_id === selected?.ID)
+      .forEach(b => {
+        const date = new Date(b.start_time);
+        const diffDays = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays >= 0 && diffDays <= MAX_ADVANCE_DAYS) {
+          dates.add(date.toDateString());
         }
-      } catch (err) {
-        console.error("Failed to fetch rooms:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRooms();
-  }, [accessToken]);
-
-  const filteredRooms = rooms.filter((room) => {
-    const matchesSearch = room.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesBuilding =
-      filterBuilding === "All" || room.building === filterBuilding;
-    let matchesCapacity = true;
-    if (filterCapacity === "< 10") matchesCapacity = room.capacity < 10;
-    else if (filterCapacity === "10 - 30")
-      matchesCapacity = room.capacity >= 10 && room.capacity <= 30;
-    else if (filterCapacity === "> 30") matchesCapacity = room.capacity > 30;
-
-    return matchesSearch && matchesBuilding && matchesCapacity;
-  });
+      });
+      
+    return Array.from(dates).map(d => new Date(d));
+  }, [allSystemBookings, selected, MAX_ADVANCE_DAYS]);
 
   const openModal = (room) => {
     setSelected(room);
@@ -128,50 +167,6 @@ export default function Rooms() {
     setIsBooking(false);
   };
 
-  const handleReserve = async () => {
-    if (!selected || !user) {
-      alert("Vui lòng đăng nhập để đặt phòng!");
-      return;
-    }
-
-    if (startTimeStr >= endTimeStr) {
-      alert("Giờ kết thúc phải sau giờ bắt đầu!");
-      return;
-    }
-    setIsBooking(true);
-
-    try {
-      const [startHour, startMin] = startTimeStr.split(":").map(Number);
-      const startDateTime = new Date(startDate);
-      startDateTime.setHours(startHour, startMin, 0, 0);
-
-      const [endHour, endMin] = endTimeStr.split(":").map(Number);
-      const endDateTime = new Date(startDate);
-      endDateTime.setHours(endHour, endMin, 0, 0);
-
-      const payload = {
-        room_id: selected.ID,
-        booking_user: user.ID,
-        start_time: startDateTime,
-        end_time: endDateTime,
-      };
-
-      await axios.post("http://localhost:3069/booking", payload, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-
-      alert(`✅ Đặt phòng ${selected.name} thành công!\nThời gian: ${startTimeStr} - ${endTimeStr} ngày ${startDate.toLocaleDateString('en-GB')}`);
-      closeModal();
-      
-    } catch (error) {
-      console.error("Lỗi đặt phòng:", error);
-      const msg = error.response?.data?.message || error.message;
-      alert(`❌ Đặt phòng thất bại: ${msg}`);
-    } finally {
-      setIsBooking(false);
-    }
-  };
-
   const nextImage = (e) => {
     e.stopPropagation();
     if (selected?.room_image?.length > 0) {
@@ -187,6 +182,80 @@ export default function Rooms() {
       );
     }
   };
+
+  const handleReserve = async () => {
+    if (!selected || !user || selected.status?.toLowerCase() !== 'available') {
+      alert("Phòng không khả dụng hoặc bạn chưa đăng nhập!");
+      return;
+    }
+
+    if (startTimeStr >= endTimeStr) {
+      alert("Giờ kết thúc phải sau giờ bắt đầu!");
+      return;
+    }
+    
+    const [startHour, startMin] = startTimeStr.split(":").map(Number);
+    const [endHour, endMin] = endTimeStr.split(":").map(Number);
+    
+    const startDateTime = new Date(startDate);
+    startDateTime.setHours(startHour, startMin, 0, 0);
+
+    const endDateTime = new Date(startDate);
+    endDateTime.setHours(endHour, endMin, 0, 0);
+
+    const durationMinutes = Math.round((endDateTime.getTime() - startDateTime.getTime()) / 60000);
+
+    if (durationMinutes <= 0 || durationMinutes < MIN_BOOKING_DURATION) {
+        alert(`Thời gian đặt phải ít nhất ${MIN_BOOKING_DURATION} phút.`);
+        return;
+    }
+
+    if (durationMinutes > MAX_BOOKING_DURATION) {
+        alert(`Thời gian đặt tối đa ${MAX_BOOKING_DURATION} phút.`);
+        return;
+    }
+    
+    setIsBooking(true);
+
+    try {
+      const payload = {
+        room_id: selected.ID,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
+      };
+
+      await axiosClient.post("/booking", payload);
+
+      alert(`✅ Đặt phòng ${selected.name} thành công!`);
+      closeModal();
+      if(refreshData) refreshData();
+      await fetchAllBookings();
+
+    } catch (error) {
+      console.error("Lỗi đặt phòng:", error);
+      const msg = error.response?.data?.message || error.message;
+      alert(`❌ Đặt phòng thất bại: ${msg}`); 
+    } finally {
+      setIsBooking(false);
+    }
+  };
+
+  const filteredRooms = rooms.filter((room) => {
+    const matchesSearch = room.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesBuilding =
+      filterBuilding === "All" || room.building === filterBuilding;
+    let matchesCapacity = true;
+    
+    if (filterCapacity === "< 10") matchesCapacity = room.capacity < 10;
+    else if (filterCapacity === "10 - 30")
+      matchesCapacity = room.capacity >= 10 && room.capacity <= 30;
+    else if (filterCapacity === "> 30") matchesCapacity = room.capacity > 30;
+
+    return matchesSearch && matchesBuilding && matchesCapacity;
+  });
+
   return (
     <div className="learning-spaces">
       <div className="page-header-row">
@@ -263,47 +332,20 @@ export default function Rooms() {
                     >
                       {!currentImgUrl && <span style={{color:'#999'}}>No Preview Image</span>}
 
-                      {/* Nút Previous (Chỉ hiện khi có nhiều hơn 1 ảnh) */}
                       {images.length > 1 && (
-                        <button 
-                          onClick={prevImage}
-                          style={{
-                            position: 'absolute', left: '10px',
-                            background: 'rgba(0,0,0,0.5)', color: '#fff',
-                            border: 'none', borderRadius: '50%',
-                            width: '30px', height: '30px', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '18px', fontWeight: 'bold'
-                          }}
-                        >
+                        <button onClick={prevImage} className="image-nav-btn left">
                           ‹
                         </button>
                       )}
 
-                      {/* Nút Next (Chỉ hiện khi có nhiều hơn 1 ảnh) */}
                       {images.length > 1 && (
-                        <button 
-                          onClick={nextImage}
-                          style={{
-                            position: 'absolute', right: '10px',
-                            background: 'rgba(0,0,0,0.5)', color: '#fff',
-                            border: 'none', borderRadius: '50%',
-                            width: '30px', height: '30px', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '18px', fontWeight: 'bold'
-                          }}
-                        >
+                        <button onClick={nextImage} className="image-nav-btn right">
                           ›
                         </button>
                       )}
 
-                      {/* Hiển thị số trang (Ví dụ: 1/3) */}
                       {images.length > 1 && (
-                        <div style={{
-                          position: 'absolute', bottom: '10px', right: '10px',
-                          background: 'rgba(0,0,0,0.6)', color: '#fff',
-                          padding: '2px 8px', borderRadius: '10px', fontSize: '12px'
-                        }}>
+                        <div className="image-counter">
                           {currentImageIndex + 1} / {images.length}
                         </div>
                       )}
@@ -311,6 +353,7 @@ export default function Rooms() {
                   );
                 })()}
               </div>
+              
               <div className="sm-desc">
                 <div className="sm-desc-row">
                   <div className="sm-desc-left">
@@ -320,6 +363,9 @@ export default function Rooms() {
                     </div>
                     <div className="room-meta">
                       <strong>Building:</strong> {selected.building}
+                    </div>
+                    <div className="room-meta">
+                      <strong>Capacity:</strong> {selected.capacity}
                     </div>
                   </div>
 
@@ -333,13 +379,31 @@ export default function Rooms() {
                     </div>
                   </div>
                 </div>
+                
+                {/* BOOKED SLOTS DISPLAY */}
+                <div className="booked-slots-box">
+                    <h3>Lịch Đã Đặt Ngày {startDate.toLocaleDateString('vi-VN')}</h3>
+                    <p className="booked-slots-hint">*Các ngày có chấm đỏ trên lịch có booking.</p>
+                    <div className="slot-list">
+                        {bookedSlots.length > 0 ? (
+                            bookedSlots.map((booking) => (
+                                <span key={booking.ID} className="booked-slot-pill">
+                                    {new Date(booking.start_time).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})} - 
+                                    {new Date(booking.end_time).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})}
+                                </span>
+                            ))
+                        ) : (
+                            <p className="no-bookings">Phòng trống cả ngày.</p>
+                        )}
+                    </div>
+                </div>
               </div>
 
               <div className="sm-actions">
                 <button
                   className="btn save"
                   onClick={handleReserve}
-                  disabled={isBooking}
+                  disabled={isBooking || selected.status?.toLowerCase() !== 'available'}
                 >
                   {isBooking ? "Processing..." : "Reserve"}
                 </button>
@@ -353,7 +417,7 @@ export default function Rooms() {
                   <input
                     type="number"
                     min="1"
-                    max={selected.capacity || 100}
+                    max={selected.capacity || MAX_GROUP_SIZE}
                     value={teamSize}
                     onChange={(e) => {
                         let val = parseInt(e.target.value);
@@ -393,6 +457,8 @@ export default function Rooms() {
                     onChange={(date) => setStartDate(date)}
                     inline
                     minDate={new Date()}
+                    highlightDates={highlightDates}
+                    maxDate={new Date(new Date().setDate(new Date().getDate() + MAX_ADVANCE_DAYS - 1))}
                   />
                 </div>
 

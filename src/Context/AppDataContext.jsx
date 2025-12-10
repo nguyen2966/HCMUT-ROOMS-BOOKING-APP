@@ -4,6 +4,16 @@ import axiosClient from "../config/axiosClient";
 
 const AppDataContext = createContext();
 
+// Helper để chuyển mảng API thành object { KEY: VALUE }
+const mapConfigArrayToKeyedObject = (configArray) => {
+    if (!Array.isArray(configArray)) return {};
+    return configArray.reduce((acc, config) => {
+        // Lưu giá trị config_value trực tiếp
+        acc[config.config_name] = config.config_value; 
+        return acc;
+    }, {});
+};
+
 export function AppDataProvider({ children }) {
   const { user, accessToken } = useAuth();
 
@@ -43,7 +53,9 @@ export function AppDataProvider({ children }) {
 
         // Note: Handling the backend inconsistencies (stack vs metaData)
         setUsers(usersRes.data?.stack?.users || usersRes.data?.metaData?.users || []); 
-        setConfigs(configsRes.data?.metaData?.configs || []);
+        // FIX: Xử lý mảng configs thành object ngay tại đây
+        const rawConfigs = configsRes.data?.metaData?.configs || [];
+        setConfigs(mapConfigArrayToKeyedObject(rawConfigs));
       }
     } catch (err) {
       console.error("Error fetching app data:", err);

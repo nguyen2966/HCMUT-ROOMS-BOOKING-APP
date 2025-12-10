@@ -18,7 +18,7 @@ function Layout({ children }) {
   return (
     <>
       {!hideLayout && <Navbar />}
-       <main className="main-content">
+       <main className={`main-content ${hideLayout ? 'no-navbar' : ''}`}>
         {children}
       </main>
       {!hideLayout && <Footer />}
