@@ -168,6 +168,12 @@ const BookedRooms = () => {
     }
   };
 
+  const handleQRBack = async () => {
+    setShowQR(false);
+    if (selected && selected.uiStatus === 'available') {
+      await handleCheckIn();
+    }
+  };
   return (
     <div className="rooms-page learning-spaces">
       <main className="rooms-main">
@@ -236,7 +242,9 @@ const BookedRooms = () => {
                       </button>
                   )}
 
-                  <button className="btn btn-dark" onClick={() => setShowQR(true)}>Show QR Code</button>
+                  {selected.uiStatus === 'available' && (
+                      <button className="btn btn-dark" onClick={() => setShowQR(true)}>Show QR Code</button>
+                  )}
                 </div>
               </div>
             )}
@@ -254,7 +262,7 @@ const BookedRooms = () => {
                     />
                   </div>
                   <div style={{ marginTop: 12 }}>
-                    <button className="btn btn-dark" onClick={() => setShowQR(false)}>Back</button>
+                    <button className="btn btn-dark" onClick={handleQRBack}>Back</button>
                   </div>
                 </div>
               </div>
