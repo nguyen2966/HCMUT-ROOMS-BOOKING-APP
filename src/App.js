@@ -27,14 +27,32 @@ function Layout({ children }) {
 }
 
 // ProtectedRoute for authenticated or role-based access
+// ProtectedRoute for authenticated or role-based access
 function ProtectedRoute({ children, allowedRoles }) {
-  const { user } = useAuth();
-  console.log("ProtectedRoute user:", user);
+  const { user, loading } = useAuth();
 
+  // Show loading screen while checking auth
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        fontSize: '18px',
+        color: '#666'
+      }}>
+        Loading...
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
+  // Check role-based access
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     return <Navigate to="/home" replace />;
   }
