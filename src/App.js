@@ -48,6 +48,7 @@ function ProtectedRoute({ children, allowedRoles }) {
   }
 
   // Redirect to login if not authenticated
+  console.log(user);
   if (!user) {
     return <Navigate to="/login" replace />;
   }

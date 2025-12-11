@@ -132,24 +132,29 @@ export default function Rooms() {
     });
   }, [allSystemBookings, selected, startDate]);
 
-  // Highlight dates with bookings on calendar
-  const highlightDates = useMemo(() => {
-    const dates = new Set();
-    const today = new Date();
-    
-    allSystemBookings
-      .filter(b => b.room_id === selected?.ID)
-      .forEach(b => {
-        const date = new Date(b.start_time);
-        const diffDays = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+const highlightDates = useMemo(() => {
+  const dates = new Set();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Reset to start of day for accurate comparison
+  
+  allSystemBookings
+    .filter(b => b.room_id === selected?.ID)
+    .forEach(b => {
+      const bookingDate = new Date(b.start_time);
+      bookingDate.setHours(0, 0, 0, 0); // Reset to start of day
+      
+      // Only highlight if booking date is today or in the future
+      if (bookingDate >= today) {
+        const diffDays = Math.ceil((bookingDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
         
         if (diffDays >= 0 && diffDays <= MAX_ADVANCE_DAYS) {
-          dates.add(date.toDateString());
+          dates.add(bookingDate.toDateString());
         }
-      });
-      
-    return Array.from(dates).map(d => new Date(d));
-  }, [allSystemBookings, selected, MAX_ADVANCE_DAYS]);
+      }
+    });
+    
+  return Array.from(dates).map(d => new Date(d));
+}, [allSystemBookings, selected, MAX_ADVANCE_DAYS]);
 
   const openModal = (room) => {
     setSelected(room);
@@ -220,6 +225,7 @@ export default function Rooms() {
     try {
       const payload = {
         room_id: selected.ID,
+        booking_user: user.ID,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
       };

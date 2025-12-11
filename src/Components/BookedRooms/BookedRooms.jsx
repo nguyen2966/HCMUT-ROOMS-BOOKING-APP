@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import 'react-datepicker/dist/react-datepicker.css';
 import "./BookedRooms.css";
-import axios from 'axios';
 import { useAuth } from '../../Context/AuthContext';
+import axiosClient from '../../config/axiosClient';
 import FeedbackModal from './FeedbackModal';
 
 const formatDate = (dateString) => {
@@ -29,7 +29,6 @@ function RoomCard({ room, onClick }) {
   }
 
   return (
-    // Sử dụng class .ls-room-card để giống hệt trang Learning Spaces
     <div className={`ls-room-card`} onClick={() => onClick(room)}>
       <div
         className="room-thumb" 
@@ -73,12 +72,14 @@ const BookedRooms = () => {
   const [feedbackBooking, setFeedbackBooking] = useState(null);
   const [viewMode, setViewMode] = useState('edit');
 
-  const fetchBookings = async () => {
-    if (!accessToken) return;
+  // Wrap fetchBookings in useCallback to stabilize it
+  const fetchBookings = useCallback(async () => {
+    if (!accessToken || !user) return;
+    
+    setLoading(true);
     try {
-      const res = await axios.get('http://localhost:3069/booking', {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
+      const res = await axiosClient.get('/booking');
+      console.log("Fetched bookings:", res.data);
 
       if (res.data && res.data.metaData && res.data.metaData.bookingList) {
         const allBookings = res.data.metaData.bookingList;
@@ -104,11 +105,12 @@ const BookedRooms = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken, user]);
 
+  // Fetch on mount and when dependencies change
   useEffect(() => {
     fetchBookings();
-  }, [accessToken, user]);
+  }, [fetchBookings]);
 
   function handleCardClick(room) {
     setSelected(room);
@@ -123,9 +125,7 @@ const BookedRooms = () => {
   const handleCheckIn = async () => {
     if (!selected) return;
     try {
-      await axios.get(`http://localhost:3069/checkin/${selected.ID}`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
+      await axiosClient.get(`/checkin/${selected.ID}`);
       alert("Check-in thành công!");
       fetchBookings(); 
       closePanel();
@@ -137,9 +137,7 @@ const BookedRooms = () => {
   const handleCheckOut = async () => {
     if (!selected) return;
     try {
-      await axios.get(`http://localhost:3069/checkout/${selected.ID}`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
+      await axiosClient.get(`/checkout/${selected.ID}`);
       alert("Check-out thành công!");
       fetchBookings(); 
       closePanel();
@@ -162,9 +160,7 @@ const BookedRooms = () => {
 
   const handleSubmitFeedback = async (feedbackData) => {
     try {
-      await axios.post('http://localhost:3069/feedback', feedbackData, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
+      await axiosClient.post('/feedback', feedbackData);
       // Refresh bookings to update feedback status
       fetchBookings();
     } catch (error) {
@@ -216,7 +212,7 @@ const BookedRooms = () => {
 
                 <div className="dates">
                   {selected.checkin_time && <div><strong>Check-In Date:</strong> <span style={{color: 'green'}}>{formatDate(selected.checkin_time)}</span></div>}
-                  {selected.checkout_time && <div><strong>Check-Out DateOut:</strong> <span style={{color: 'red'}}>{formatDate(selected.checkout_time)}</span></div>}
+                  {selected.checkout_time && <div><strong>Check-Out Date:</strong> <span style={{color: 'red'}}>{formatDate(selected.checkout_time)}</span></div>}
                 </div>
 
                 <div className="panel-actions-vertical">
